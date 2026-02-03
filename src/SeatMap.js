@@ -149,7 +149,7 @@ function SeatMap({ rodada, onBack, session }) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '8px',
+          gap: '4px',
           cursor: isOccupied ? 'not-allowed' : 'pointer',
           position: 'relative'
         }}
@@ -157,21 +157,20 @@ function SeatMap({ rodada, onBack, session }) {
       >
         {/* Circle Container */}
         <div style={{
-          width: '44px',
-          height: '44px',
+          width: '34px',
+          height: '34px',
           borderRadius: '50%',
           background: isSelected ? primaryColor : (isOccupied ? secondaryColor : 'rgba(255,255,255,0.05)'),
           border: isOccupied ? '1px solid transparent' : (isSelected ? 'none' : '1px solid rgba(255,255,255,0.1)'),
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: isSelected ? `0 0 20px ${primaryColor}66` : 'none', // Opacity 40%
+          boxShadow: isSelected ? `0 0 16px ${primaryColor}66` : 'none',
           transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
           transform: isSelected ? 'scale(1.1)' : 'scale(1)'
         }}>
-          {/* Nuevo Icono React-Icons */}
           <MdOutlineDirectionsBike
-            size={24}
+            size={18}
             color={iconColor}
           />
 
@@ -199,7 +198,7 @@ function SeatMap({ rodada, onBack, session }) {
 
         {/* Seat Number */}
         <span style={{
-          fontSize: '12px',
+          fontSize: '10px',
           color: isSelected ? primaryColor : (isOccupied ? '#424242' : '#64748b'),
           fontWeight: isSelected ? '700' : '500'
         }}>
@@ -359,7 +358,7 @@ function SeatMap({ rodada, onBack, session }) {
             }}>
               {/* Left Monitors */}
               {leftMonitors.length > 0 && (
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   {leftMonitors.map(seat => renderSeat(seat))}
                 </div>
               )}
@@ -392,7 +391,7 @@ function SeatMap({ rodada, onBack, session }) {
 
               {/* Right Monitors */}
               {rightMonitors.length > 0 && (
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   {rightMonitors.map(seat => renderSeat(seat))}
                 </div>
               )}
@@ -413,8 +412,8 @@ function SeatMap({ rodada, onBack, session }) {
                     style={{
                       display: 'flex',
                       justifyContent: 'center',
-                      gap: '10px',
-                      marginBottom: '20px'
+                      gap: '6px',
+                      marginBottom: '16px'
                     }}
                   >
                     {rowSeats.map(seat => renderSeat(seat))}
