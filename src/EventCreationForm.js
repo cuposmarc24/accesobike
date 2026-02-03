@@ -1858,12 +1858,12 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                             fontSize: '12px',
                                             fontWeight: '500'
                                         }}>
-                                            Fecha de Expiración
+                                            Fecha de Expiración (Fecha de Fin)
                                         </label>
                                         <input
                                             type="date"
-                                            value={formData.expiration_date}
-                                            onChange={(e) => handleInputChange('expiration_date', e.target.value)}
+                                            value={formData.end_date}
+                                            onChange={(e) => handleInputChange('end_date', e.target.value)}
                                             style={{
                                                 width: '100%',
                                                 padding: '10px 12px',
