@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Panel de Administrador AccesoBike</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13c8ec",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#111f22",
+                        "surface-dark": "#1a2c30",
+                        "input-dark": "#234248",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+    width: 0;
+    background: transparent
+    }
+/* Select arrow color fix */
+select {
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCjaTHHLUE7OcLClJ2UE2nPYdiQV4bcNikqX-qfTZxy88pVXh8QpjGrU-fR9W5WuT25a6el6ox6E0uqS7a0Qh6_sbVAEMraTJnfAuV4DlAld3VRVkL4bs6lLe1YEaoHtQdAgqQY2G-YEv_Hy_cqZHR7Iuxb_AM9VrJijeTruJrg-ndLsNVzfoWwocAhMI4koMRJS-oSX_TkXDVS3y9mrg1ny7-YL8lkZ5yo2b0s3cMhTQJIJU4OgZabMDoNVEnrBwXs1ZkWBTHlIWY);
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none
+    }
+/* Input date icon color fix */
+::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.6
+    }</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 flex items-center bg-background-dark/95 backdrop-blur-sm p-4 justify-between border-b border-white/5">
+<div class="flex items-center gap-3">
+<div class="text-primary flex size-10 items-center justify-center rounded-full bg-primary/10">
+<span class="material-symbols-outlined text-[24px]">pedal_bike</span>
+</div>
+<div>
+<h1 class="text-white text-lg font-bold leading-tight tracking-tight">AccesoBike</h1>
+<p class="text-xs text-slate-400 font-medium">Panel de Admin</p>
+</div>
+</div>
+<div class="flex items-center justify-end">
+<button class="relative flex items-center justify-center overflow-hidden rounded-full size-10 bg-surface-dark text-white hover:bg-primary/20 transition-colors">
+<img alt="Admin Profile Avatar" class="h-full w-full object-cover opacity-90" data-alt="User profile avatar showing a smiling person" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfz5wsF_HGxZZGjmto-xbPwiUGHipWZtkkxdP7YmISqGb27XSDwFbodLXr9GpYe1kD24PRisTkQQ-5P6FVgbmOVC8hAHdxHYsJZmgZ5XhOosbwGMCTEJYa03o9ze4kwGd3_d9iPlVi0cEKlerQnReE_gy1reEd1Hr06NS7oGS_FRZVZWzhBWzPPJpU-gGlTbZgvTiJYUoohzm0FXRwe9abBDRLcsbZwdM4dMd4IS8MRKgB-GdbmCO-E78OH1Zj0j21OCMduzrPIa4"/>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex flex-col flex-1 px-4 py-6 gap-8">
+<!-- Create Event Section -->
+<section>
+<div class="flex justify-between items-baseline mb-4">
+<h2 class="text-white text-2xl font-bold tracking-tight">Crear Nueva Sesión</h2>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Event Name -->
+<label class="flex flex-col w-full group">
+<span class="text-slate-400 text-sm font-medium mb-2 group-focus-within:text-primary transition-colors">Nombre de la clase</span>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-slate-500 text-[20px]">fitness_center</span>
+<input class="w-full rounded-xl bg-input-dark border-transparent focus:border-primary focus:ring-0 focus:bg-surface-dark text-white placeholder-slate-500 h-14 pl-12 pr-4 text-base transition-all" placeholder="Ej. Morning Power Ride" type="text"/>
+</div>
+</label>
+<!-- Date & Time Row -->
+<div class="flex gap-4">
+<label class="flex flex-col flex-1 min-w-0 group">
+<span class="text-slate-400 text-sm font-medium mb-2 group-focus-within:text-primary transition-colors">Fecha</span>
+<div class="relative flex items-center">
+<input class="w-full rounded-xl bg-input-dark border-transparent focus:border-primary focus:ring-0 focus:bg-surface-dark text-white placeholder-slate-500 h-14 px-4 text-base transition-all" type="date"/>
+</div>
+</label>
+<label class="flex flex-col flex-1 min-w-0 group">
+<span class="text-slate-400 text-sm font-medium mb-2 group-focus-within:text-primary transition-colors">Hora</span>
+<div class="relative flex items-center">
+<input class="w-full rounded-xl bg-input-dark border-transparent focus:border-primary focus:ring-0 focus:bg-surface-dark text-white placeholder-slate-500 h-14 px-4 text-base transition-all" type="time"/>
+</div>
+</label>
+</div>
+<!-- Instructor -->
+<label class="flex flex-col w-full group">
+<span class="text-slate-400 text-sm font-medium mb-2 group-focus-within:text-primary transition-colors">Instructor</span>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-slate-500 text-[20px]">person</span>
+<select class="w-full rounded-xl bg-input-dark border-transparent focus:border-primary focus:ring-0 focus:bg-surface-dark text-white placeholder-slate-500 h-14 pl-12 pr-10 text-base transition-all appearance-none">
+<option disabled="" selected="" value="">Seleccionar instructor</option>
+<option value="ana">Ana García</option>
+<option value="carlos">Carlos Mendoza</option>
+<option value="sofia">Sofia Lopez</option>
+</select>
+</div>
+</label>
+<!-- Location -->
+<label class="flex flex-col w-full group">
+<span class="text-slate-400 text-sm font-medium mb-2 group-focus-within:text-primary transition-colors">Ubicación</span>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-slate-500 text-[20px]">location_on</span>
+<select class="w-full rounded-xl bg-input-dark border-transparent focus:border-primary focus:ring-0 focus:bg-surface-dark text-white placeholder-slate-500 h-14 pl-12 pr-10 text-base transition-all appearance-none">
+<option disabled="" selected="" value="">Seleccionar sala</option>
+<option value="main">Studio Principal (A)</option>
+<option value="vip">Sala VIP (B)</option>
+<option value="rooftop">Terraza (C)</option>
+</select>
+</div>
+</label>
+<!-- Submit Button -->
+<button class="mt-2 w-full h-14 bg-primary hover:bg-cyan-400 text-background-dark font-bold text-lg rounded-xl shadow-[0_0_20px_rgba(19,200,236,0.3)] hover:shadow-[0_0_30px_rgba(19,200,236,0.5)] transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+<span class="material-symbols-outlined">add_circle</span>
+                        Publicar Evento
+                    </button>
+</div>
+</section>
+<div class="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+<!-- Upcoming Events List -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-white text-lg font-bold">Próximos Eventos</h3>
+<a class="text-primary text-sm font-semibold hover:text-cyan-300" href="#">Ver todo</a>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Event Card 1 -->
+<div class="group relative flex flex-col gap-3 rounded-2xl bg-surface-dark p-4 border border-white/5 hover:border-primary/30 transition-all">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<!-- Date Badge -->
+<div class="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-background-dark border border-white/10 shrink-0">
+<span class="text-xs font-medium text-slate-400 uppercase">Ene</span>
+<span class="text-xl font-bold text-white">12</span>
+</div>
+<div class="flex flex-col justify-center">
+<h4 class="text-white font-bold text-base leading-tight mb-1">Morning Ride</h4>
+<p class="text-slate-400 text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">schedule</span>
+                                        07:00 AM
+                                    </p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white p-1">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-white/5">
+<div class="flex items-center gap-2">
+<img alt="Instructor Avatar" class="size-6 rounded-full object-cover border border-white/10" data-alt="Small circular portrait of a female instructor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHXAmF4zAlIKEkIa4h591NAHroI48xq-kqxMxfVQOs8KIxRQtsMXSEqlkDWldcTcNH-NyWI27iWSICvr7YM5h2O8lB-kzfPz5F1sVVgh2fZlr-u4FgvUiEo1IVPP7QMZCL75W6dUvFm4s0doBeras4eRw9sPifVYQTkpdZA3QMifbNLUWgWU3l5G_H9j4IaLDyfldKfGpc7D80ZG6iCISietHjWDsPM4RQyUlIzWxFnnyLjoAxMU_O6BjvGR3EfPv76k4WS_lqiD8"/>
+<span class="text-xs text-slate-300">Ana García</span>
+</div>
+<div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background-dark/50">
+<span class="material-symbols-outlined text-[14px] text-primary">group</span>
+<span class="text-xs font-semibold text-primary">24/30</span>
+</div>
+</div>
+</div>
+<!-- Event Card 2 -->
+<div class="group relative flex flex-col gap-3 rounded-2xl bg-surface-dark p-4 border border-white/5 hover:border-primary/30 transition-all">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<!-- Date Badge -->
+<div class="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-background-dark border border-white/10 shrink-0">
+<span class="text-xs font-medium text-slate-400 uppercase">Ene</span>
+<span class="text-xl font-bold text-white">13</span>
+</div>
+<div class="flex flex-col justify-center">
+<h4 class="text-white font-bold text-base leading-tight mb-1">Power Cycle</h4>
+<p class="text-slate-400 text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">schedule</span>
+                                        06:30 PM
+                                    </p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white p-1">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-white/5">
+<div class="flex items-center gap-2">
+<img alt="Instructor Avatar" class="size-6 rounded-full object-cover border border-white/10" data-alt="Small circular portrait of a male instructor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZOxGbTwxs6LxDeGYystSubJdQSYmbWOOAEA_OEuTtgWEqTqyVy0NUoTP_qnPgfQu4Ror7YuM-tXHoxCHtn75gsJ3EZ8Miimp9Y6__xTzSOnUtP2fop95QOwlwX6yxfgB9YQ-SBfJMVY0_A6sAvPddsJzQtUSQoPz6Z89NVKQ085VicH7kJuk4DNSdWkjPdfxUktSL7dAYGJdzjQ3M59KtlISFrK9ttEwSvb-s4J9GwaEjzvhDvn0ATbNcAm9jKuUJpSOggviWKdM"/>
+<span class="text-xs text-slate-300">Carlos Mendoza</span>
+</div>
+<div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background-dark/50">
+<span class="material-symbols-outlined text-[14px] text-emerald-400">group</span>
+<span class="text-xs font-semibold text-emerald-400">05/30</span>
+</div>
+</div>
+</div>
+<!-- Event Card 3 -->
+<div class="group relative flex flex-col gap-3 rounded-2xl bg-surface-dark p-4 border border-white/5 hover:border-primary/30 transition-all">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<!-- Date Badge -->
+<div class="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-background-dark border border-white/10 shrink-0">
+<span class="text-xs font-medium text-slate-400 uppercase">Ene</span>
+<span class="text-xl font-bold text-white">14</span>
+</div>
+<div class="flex flex-col justify-center">
+<h4 class="text-white font-bold text-base leading-tight mb-1">Endurance</h4>
+<p class="text-slate-400 text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">schedule</span>
+                                        08:00 AM
+                                    </p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-white p-1">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-white/5">
+<div class="flex items-center gap-2">
+<img alt="Instructor Avatar" class="size-6 rounded-full object-cover border border-white/10" data-alt="Small circular portrait of a female instructor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZgsFE8mvIXXCmsk8qywO_dG9tTsPV8vKe142nKxvU11vgSxOC_XPs845IThSRXpelny5FoycEBuU-ATErRC9QA08u8g-rA4Tus0-2bRP7ojl55ThijD-JOK4YgRif_X5FE5rAbbiDCuyXQTfndu_PkdHAzraGdR2n01ZOvil7rwdeEeNxEBWPbLfSdcY4h2IGPM5HvTNzP52gBmMPPZ-27bpPchN64_cGehjAO_hJNZpRRQObjpYqcblY0UAqNcgmSdT2zxuG2kE"/>
+<span class="text-xs text-slate-300">Sofia Lopez</span>
+</div>
+<div class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-background-dark/50">
+<span class="material-symbols-outlined text-[14px] text-orange-400">group</span>
+<span class="text-xs font-semibold text-orange-400">30/30</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 bg-background-dark/95 backdrop-blur-md border-t border-white/5 px-6 py-4 z-40">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined fill-1">dashboard</span>
+<span class="text-[10px] font-medium">Panel</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="text-[10px] font-medium">Calendario</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-[10px] font-medium">Usuarios</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-medium">Ajustes</span>
+</button>
+</div>
+</nav>
+</div>
+</body></html>
