@@ -510,7 +510,7 @@ function SeatMap({ rodada, onBack, session }) {
       )}
       <CustomAlert isOpen={showCustomAlert} onAccept={() => {
         if (pendingReservation) {
-          sendWhatsAppMessage(pendingReservation.formData, pendingReservation.seat, rodada);
+          sendWhatsAppMessage(pendingReservation.formData, pendingReservation.seat, rodada, config);
           setPendingReservation(null);
         }
         setShowCustomAlert(false);

@@ -1,11 +1,17 @@
-// CAMBIAR ESTE NÚMERO POR EL QUE USARÁN REALMENTE
-const WHATSAPP_NUMBER = '+584145599026';
+export const sendWhatsAppMessage = (reservationData, seat, rodada, config) => {
+  // Obtener número de WhatsApp desde la configuración
+  const whatsappNumber = config?.whatsapp?.adminPhone;
 
-export const sendWhatsAppMessage = (reservationData, seat, rodada) => {
+  if (!whatsappNumber) {
+    alert('Error: No se ha configurado un número de WhatsApp para este evento.');
+    console.error('WhatsApp number not configured in event config');
+    return;
+  }
+
   // Determine event name and details based on rodada type (string or object)
   const isEventObject = typeof rodada === 'object' && rodada !== null;
 
-  const eventName = isEventObject ? (rodada.event_name || 'Evento de Ciclismo') : 'Evento GirosGym';
+  const eventName = isEventObject ? (rodada.event_name || 'Evento de Ciclismo') : 'Evento AccesoBike';
   const sessionName = isEventObject ?
     (rodada.rodada || 'Sesión Única') :
     (rodada === 'rodada1' ? 'Rodada 1 - 05:30 PM' : 'Rodada 2 - 07:00 PM'); // Legacy fallback
@@ -24,7 +30,8 @@ export const sendWhatsAppMessage = (reservationData, seat, rodada) => {
 📅 *Fecha:* ${new Date().toLocaleDateString()}`;
 
   const encodedMessage = encodeURIComponent(message);
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}?text=${encodedMessage}`;
+  const cleanNumber = whatsappNumber.replace('+', '').replace(/\s/g, '');
+  const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
 
   window.open(whatsappUrl, '_blank');
 };
