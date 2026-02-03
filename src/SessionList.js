@@ -161,7 +161,7 @@ function SessionList({ event, onSelectSession, onBack, onShowAdmin }) {
                             {/* 1. Flyer / Image Section */}
                             <div style={{
                                 width: '100%',
-                                height: '180px', // More compact image height
+                                height: '350px', // Increased height for better visibility
                                 position: 'relative',
                                 overflow: 'hidden'
                             }}>
@@ -171,7 +171,7 @@ function SessionList({ event, onSelectSession, onBack, onShowAdmin }) {
                                     style={{
                                         width: '100%',
                                         height: '100%',
-                                        objectFit: 'cover',
+                                        objectFit: 'cover', // Ensures it covers the area, but with more height now
                                         transition: 'transform 0.5s ease'
                                     }}
                                 />
@@ -179,23 +179,39 @@ function SessionList({ event, onSelectSession, onBack, onShowAdmin }) {
 
                             {/* 2. Details Section - Compact */}
                             <div style={{
-                                padding: '16px 20px', // Reduced padding
+                                padding: '16px 20px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '12px'
                             }}>
-                                {/* Header: Name and Price */}
+                                {/* Header: Name, Price, and Time */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                                    <h3 style={{
-                                        fontSize: '20px', // Compact font size
-                                        fontWeight: '800',
-                                        margin: 0,
-                                        color: '#fff',
-                                        textTransform: 'uppercase',
-                                        lineHeight: '1.2'
-                                    }}>
-                                        {session.event_name || session.name}
-                                    </h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                                        <h3 style={{
+                                            fontSize: '16px', // Smaller font size
+                                            fontWeight: '800',
+                                            margin: 0,
+                                            color: '#fff',
+                                            textTransform: 'uppercase',
+                                            lineHeight: '1.2'
+                                        }}>
+                                            {session.event_name || session.name}
+                                        </h3>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            color: '#94a3b8',
+                                            fontSize: '13px',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px'
+                                        }}>
+                                            <MdAccessTime size={14} style={{ color: primaryColor }} />
+                                            <span>{formatTime(session.time)}</span>
+                                        </div>
+                                    </div>
+
                                     {session.price && (
                                         <div style={{
                                             background: 'rgba(34, 197, 94, 0.15)',
@@ -242,26 +258,16 @@ function SessionList({ event, onSelectSession, onBack, onShowAdmin }) {
                                     </div>
                                 )}
 
-                                {/* Footer: Time and Action Button */}
+                                {/* Footer: Just Action Button now */}
                                 <div style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'space-between',
+                                    justifyContent: 'flex-end',
                                     marginTop: '4px',
                                     paddingTop: '12px',
                                     borderTop: '1px solid rgba(255,255,255,0.05)'
                                 }}>
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px',
-                                        color: '#94a3b8'
-                                    }}>
-                                        <MdAccessTime size={18} style={{ color: primaryColor }} />
-                                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>
-                                            {formatTime(session.time)}
-                                        </span>
-                                    </div>
+                                    {/* Time removed from here */}
 
                                     <button style={{
                                         background: primaryColor,

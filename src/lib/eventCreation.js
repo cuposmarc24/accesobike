@@ -64,6 +64,7 @@ export const createEvent = async (eventData) => {
             event_name: eventData.event_name.trim(),
             cycling_room: eventData.cycling_room || '',
             cycling_room_logo: eventData.cycling_room_logo || '',
+            event_image: eventData.event_image || '',
             event_slug: slug,
             start_date: eventData.start_date || null,
             end_date: eventData.end_date || null,
@@ -201,6 +202,9 @@ export const updateEvent = async (eventId, eventData) => {
             .from('events')
             .update({
                 event_name: eventData.event_name,
+                cycling_room: eventData.cycling_room,
+                cycling_room_logo: eventData.cycling_room_logo,
+                event_image: eventData.event_image,
                 start_date: eventData.start_date,
                 end_date: eventData.end_date,
                 is_active: eventData.is_active,
