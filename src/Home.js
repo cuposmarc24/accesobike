@@ -4,6 +4,7 @@ import { useEventConfig } from './lib/EventConfigProvider';
 import SeatMap from './SeatMap';
 import SessionList from './SessionList';
 import Footer from './Footer';
+import { FaRegCalendarXmark } from "react-icons/fa6";
 
 function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
     const { loading: configLoading } = useEventConfig();
@@ -74,7 +75,7 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
     if (configLoading || loadingEvents) {
         return (
             <div style={{
-                background: '#111f22',
+                background: '#f8fafc', // Light loading bg
                 minHeight: '100vh',
                 display: 'flex',
                 justifyContent: 'center',
@@ -113,79 +114,160 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
 
     // Default: Show Event List
     const upcomingEvents = events;
+    const isEmpty = events.length === 0;
 
     return (
         <div style={{
-            background: '#111f22',
+            background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+
+            // FULL LOCK
+            height: isEmpty ? '100vh' : 'auto',
             minHeight: '100vh',
-            fontFamily: 'Inter, sans-serif',
-            color: '#fff',
-            paddingBottom: '80px',
-            position: 'relative'
+            overflow: isEmpty ? 'hidden' : 'auto',
+
+            // Flex for overall structure
+            display: 'flex',
+            flexDirection: 'column',
+
+            margin: 0,
+            padding: 0,
+            boxSizing: 'border-box',
+            fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+            color: '#1e293b',
         }}>
-            {/* Header / Top Bar Simplificado */}
+            {/* Header: Fixed Height needed for calc if we used it, but flex is better */}
             <header style={{
-                padding: '16px 20px',
+                flexShrink: 0, // Prevent shrinking
+                padding: '12px 24px',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'sticky',
                 top: 0,
-                background: '#111f22',
-                zIndex: 50
+                background: 'rgba(17, 31, 34, 0.95)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                zIndex: 50,
+                borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}>
-                <h1
+                <div
                     onClick={handleLogoTap}
                     style={{
-                        fontSize: '20px',
-                        fontWeight: '800',
-                        margin: 0,
-                        color: '#fff',
                         cursor: 'pointer',
-                        userSelect: 'none',
-                        letterSpacing: '-0.5px'
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%'
                     }}
                 >
-                    AccesoBike
-                </h1>
-                <p style={{
-                    fontSize: '12px',
-                    color: '#94a3b8',
-                    margin: '4px 0 0 0',
-                    fontWeight: '500',
-                    letterSpacing: '0.5px'
-                }}>
-                    App de Reservas Online
-                </p>
+                    <img
+                        src="/logo.png"
+                        alt="AccesoBike Logo"
+                        style={{
+                            height: '55px',
+                            width: 'auto',
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 0 8px rgba(19, 200, 236, 0.3))'
+                        }}
+                    />
+                </div>
             </header>
 
-            <main style={{ padding: '0 20px', marginTop: '24px' }}>
-                {events.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px 0', opacity: 0.5 }}>
-                        <p>No hay eventos disponibles</p>
+            <main style={{
+                flex: 1, // Take all remaining space
+                display: 'flex',
+                flexDirection: 'column',
+                // CENTER CONTENT IF EMPTY
+                justifyContent: isEmpty ? 'center' : 'flex-start',
+                alignItems: isEmpty ? 'center' : 'stretch',
+
+                padding: isEmpty ? '0 20px' : '24px 20px', // Remove vertical padding if empty to fix centering
+                paddingBottom: isEmpty ? 0 : '80px',
+                width: '100%',
+                boxSizing: 'border-box'
+            }}>
+                {isEmpty ? (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        // Remove padding/margins that shift center
+                        opacity: 0,
+                        animation: 'fadeIn 0.8s ease-out forwards',
+                        transform: 'translateY(-20px)' // Slight visual correction for optical center vs geometric center
+                    }}>
+                        <div style={{
+                            fontSize: '48px',
+                            marginBottom: '32px',
+                            background: '#fff',
+                            borderRadius: '50%',
+                            width: '120px',
+                            height: '120px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1px solid rgba(255,255,255,0.8)',
+                            boxShadow: '0 10px 40px -10px rgba(19, 200, 236, 0.2)'
+                        }}>
+                            <FaRegCalendarXmark size={48} color="#94a3b8" />
+                        </div>
+                        <h3 style={{
+                            fontSize: '22px',
+                            fontWeight: '600',
+                            color: '#334155',
+                            margin: '0 0 12px 0',
+                            textAlign: 'center',
+                            letterSpacing: '-0.01em'
+                        }}>
+                            Sin eventos programados
+                        </h3>
+                        <p style={{
+                            fontSize: '15px',
+                            color: '#64748b',
+                            margin: 0,
+                            textAlign: 'center',
+                            maxWidth: '280px',
+                            lineHeight: '1.6'
+                        }}>
+                            Estamos preparando nuevas experiencias. Mantente atento a las próximas fechas.
+                        </p>
+                        <style>{`
+                            @keyframes fadeIn {
+                                from { opacity: 0; transform: translateY(20px); }
+                                to { opacity: 1; transform: translateY(-20px); } 
+                            }
+                        `}</style>
                     </div>
                 ) : (
                     <>
-                        {/* Eventos Section */}
-                        <div style={{ marginBottom: '16px' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>Eventos</h2>
+                        <div style={{ marginBottom: '24px', paddingLeft: '4px', borderLeft: '3px solid #13c8ec' }}>
+                            <h2 style={{
+                                fontSize: '24px',
+                                fontWeight: '700',
+                                margin: 0,
+                                color: '#1e293b',
+                                letterSpacing: '-0.03em'
+                            }}>Próximos Eventos</h2>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                             {upcomingEvents.map(event => (
                                 <div
                                     key={event.id}
                                     style={{
-                                        background: '#1a2c30',
-                                        borderRadius: '20px',
+                                        background: '#ffffff',
+                                        borderRadius: '24px',
                                         overflow: 'hidden',
-                                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                                        border: '1px solid rgba(255, 255, 255, 0.8)',
+                                        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.08)',
+                                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                        cursor: 'pointer'
                                     }}
+                                    onClick={() => handleEventSelect(event)}
                                 >
-                                    {/* Image Header */}
                                     <div style={{
-                                        height: '240px',
+                                        height: '220px',
                                         position: 'relative',
                                         backgroundImage: `url(${event.event_image || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1470&auto=format&fit=crop'})`,
                                         backgroundSize: 'cover',
@@ -194,63 +276,95 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
                                         <div style={{
                                             position: 'absolute',
                                             top: 0, left: 0, right: 0, bottom: 0,
-                                            background: 'linear-gradient(to top, rgba(26,44,48,1) 0%, rgba(26,44,48,0) 100%)'
+                                            background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 100%)'
                                         }} />
+
                                         <div style={{
                                             position: 'absolute',
-                                            bottom: '24px',
+                                            bottom: '20px',
                                             left: '20px',
                                             right: '20px'
                                         }}>
-                                            <h3 style={{
-                                                fontSize: '24px',
-                                                fontWeight: '800',
-                                                margin: '0 0 6px 0',
-                                                textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                                                lineHeight: '1.2'
-                                            }}>{event.event_name}</h3>
-                                            <p style={{
-                                                fontSize: '14px',
-                                                color: '#e2e8f0',
-                                                margin: 0,
-                                                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                                                fontFamily: 'monospace'
+                                            <div style={{
+                                                display: 'inline-block',
+                                                padding: '6px 12px',
+                                                background: 'rgba(255, 255, 255, 0.95)',
+                                                backdropFilter: 'blur(4px)',
+                                                borderRadius: '50px',
+                                                marginBottom: '12px',
+                                                boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
                                             }}>
-                                                📅 {event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Fecha por definir'}
-                                            </p>
+                                                <span style={{
+                                                    fontSize: '12px',
+                                                    fontWeight: '700',
+                                                    color: '#0f172a',
+                                                    letterSpacing: '0.05em'
+                                                }}>
+                                                    {event.start_date ? new Date(event.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase() : 'FECHA TBD'}
+                                                </span>
+                                            </div>
+                                            <h3 style={{
+                                                fontSize: '28px',
+                                                fontWeight: '700',
+                                                margin: 0,
+                                                color: '#fff',
+                                                textShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                                lineHeight: '1.1',
+                                                letterSpacing: '-0.02em'
+                                            }}>{event.event_name}</h3>
                                         </div>
                                     </div>
 
-                                    {/* Card Body */}
-                                    <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', background: '#334155', border: '2px solid rgba(19, 200, 236, 0.3)' }}>
-                                                    {event.cycling_room_logo ? (
-                                                        <img src={event.cycling_room_logo} alt="Room Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    ) : (
-                                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🚲</div>
-                                                    )}
-                                                </div>
-                                                <span style={{ fontSize: '16px', fontWeight: '700', color: '#fff', letterSpacing: '0.3px' }}>{event.cycling_room || 'Sala Principal'}</span>
+                                    <div style={{ padding: '20px 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{
+                                                width: '42px',
+                                                height: '42px',
+                                                borderRadius: '14px',
+                                                overflow: 'hidden',
+                                                background: '#f1f5f9',
+                                                border: '1px solid rgba(0,0,0,0.05)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
+                                            }}>
+                                                {event.cycling_room_logo ? (
+                                                    <img src={event.cycling_room_logo} alt="Room Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <span style={{ fontSize: '18px' }}>🚲</span>
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{
+                                                    fontSize: '12px',
+                                                    color: '#64748b',
+                                                    fontWeight: '700',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.05em'
+                                                }}>Ubicación</span>
+                                                <span style={{
+                                                    fontSize: '15px',
+                                                    fontWeight: '700',
+                                                    color: '#1e293b'
+                                                }}>{event.cycling_room || 'Sala Principal'}</span>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={() => handleEventSelect(event)}
-                                            style={{
-                                                background: '#13c8ec',
-                                                color: '#111f22',
-                                                border: 'none',
-                                                borderRadius: '12px',
-                                                padding: '10px 20px',
-                                                fontSize: '14px',
-                                                fontWeight: '700',
-                                                cursor: 'pointer',
-                                                boxShadow: '0 4px 14px rgba(19, 200, 236, 0.2)'
-                                            }}
-                                        >
-                                            Reservar
-                                        </button>
+
+                                        <div style={{
+                                            width: '48px',
+                                            height: '48px',
+                                            borderRadius: '50%',
+                                            background: 'linear-gradient(135deg, #13c8ec 0%, #0ea5e9 100%)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#fff',
+                                            boxShadow: '0 6px 20px -5px rgba(14, 165, 233, 0.4)'
+                                        }}>
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M5 12h14M12 5l7 7-7 7" />
+                                            </svg>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
