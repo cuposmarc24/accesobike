@@ -30,7 +30,7 @@ export const EventConfigProvider = ({ children, eventSlug }) => {
                     .select('*')
                     .eq('event_slug', eventSlug)
                     .eq('is_active', true)
-                    .single();
+                    .maybeSingle();
                 data = response.data;
                 fetchError = response.error;
             }
@@ -39,13 +39,14 @@ export const EventConfigProvider = ({ children, eventSlug }) => {
                 console.warn('Evento específico no encontrado, buscando evento activo más reciente...');
 
                 // FALLBACK: Buscar cualquier evento activo
+                // Usamos maybeSingle() en lugar de single() para evitar error cuando no hay eventos
                 const { data: fallbackData, error: fallbackError } = await supabase
                     .from('events')
                     .select('*')
                     .eq('is_active', true)
                     .order('created_at', { ascending: false })
                     .limit(1)
-                    .single();
+                    .maybeSingle();
 
                 if (fallbackError) {
                     throw fallbackError;
@@ -55,7 +56,9 @@ export const EventConfigProvider = ({ children, eventSlug }) => {
                     data = fallbackData;
                     // fetchError se ignora porque encontramos un reemplazo
                 } else {
-                    setError('No se encontraron eventos activos');
+                    // No hay eventos activos — esto es válido, no es un error
+                    console.log('ℹ️ No hay eventos activos en este momento.');
+                    setLoading(false);
                     return;
                 }
             }
