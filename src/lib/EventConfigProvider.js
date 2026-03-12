@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
 // Crear contexto para la configuración del evento
-const EventConfigContext = createContext();
+export const EventConfigContext = createContext();
 
 // Provider que carga y proporciona la configuración del evento
 export const EventConfigProvider = ({ children, eventSlug }) => {

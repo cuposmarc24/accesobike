@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { supabase } from './lib/supabase';
 import { superAdminAuth } from './lib/auth';
 import EventCreationForm from './EventCreationForm';
-import { useEventConfig } from './lib/EventConfigProvider';
+import { EventConfigContext } from './lib/EventConfigProvider';
+
+const getEventUrl = (slug) => `${window.location.origin}/evento/${slug}`;
 
 function SuperAdminPanel({ onLogout }) {
     const [events, setEvents] = useState([]);
@@ -10,8 +12,18 @@ function SuperAdminPanel({ onLogout }) {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
     const [deletingEventId, setDeletingEventId] = useState(null);
+    const [copiedSlug, setCopiedSlug] = useState(null);
     const session = superAdminAuth.getSession();
-    const { reloadConfig } = useEventConfig();
+    // reloadConfig may not be available when SuperAdminPanel is used outside EventConfigProvider (e.g. LandingPage)
+    const eventConfigCtx = useContext(EventConfigContext);
+    const reloadConfig = eventConfigCtx?.reloadConfig ?? (() => {});
+
+    const handleCopyLink = (slug) => {
+        navigator.clipboard.writeText(getEventUrl(slug)).then(() => {
+            setCopiedSlug(slug);
+            setTimeout(() => setCopiedSlug(null), 2000);
+        });
+    };
 
     useEffect(() => {
         fetchEvents();
@@ -408,14 +420,43 @@ function SuperAdminPanel({ onLogout }) {
                                         }}>
                                             {event.event_name}
                                         </h4>
-                                        <p style={{
-                                            color: '#94a3b8',
-                                            fontSize: '11px',
-                                            margin: 0,
-                                            fontFamily: 'monospace'
-                                        }}>
-                                            /{event.event_slug}
-                                        </p>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleCopyLink(event.event_slug);
+                                            }}
+                                            title="Copiar link del evento"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                background: copiedSlug === event.event_slug
+                                                    ? 'rgba(16, 185, 129, 0.1)'
+                                                    : 'rgba(19, 200, 236, 0.07)',
+                                                border: `1px solid ${copiedSlug === event.event_slug ? 'rgba(16,185,129,0.4)' : 'rgba(19,200,236,0.2)'}`,
+                                                borderRadius: '5px',
+                                                padding: '3px 8px',
+                                                color: copiedSlug === event.event_slug ? '#10b981' : '#13c8ec',
+                                                fontSize: '10px',
+                                                fontFamily: 'monospace',
+                                                fontWeight: '600',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                marginTop: '2px'
+                                            }}
+                                        >
+                                            {copiedSlug === event.event_slug ? (
+                                                <>
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                                    Copiado
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                                    /evento/{event.event_slug}
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
                                     <div style={{
                                         display: 'inline-flex',

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { useEventConfig } from './lib/EventConfigProvider';
 import SeatMap from './SeatMap';
@@ -6,8 +7,9 @@ import SessionList from './SessionList';
 import Footer from './Footer';
 import { FaRegCalendarXmark } from "react-icons/fa6";
 
-function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
-    const { loading: configLoading } = useEventConfig();
+function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin, eventSlug }) {
+    const navigate = useNavigate();
+    const { loading: configLoading, eventData } = useEventConfig();
     const [events, setEvents] = useState([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -18,8 +20,19 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
     const [tapTimeout, setTapTimeout] = useState(null);
 
     useEffect(() => {
-        fetchEvents();
-    }, []);
+        if (!eventSlug) {
+            fetchEvents();
+        } else {
+            setLoadingEvents(false);
+        }
+    }, [eventSlug]);
+
+    // When accessing via slug, auto-select the loaded event
+    useEffect(() => {
+        if (eventSlug && eventData && !selectedEvent) {
+            setSelectedEvent(eventData);
+        }
+    }, [eventSlug, eventData]);
 
     const fetchEvents = async () => {
         try {
@@ -64,8 +77,13 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
     };
 
     const handleBackToEvents = () => {
-        setSelectedEvent(null);
-        setSelectedSession(null);
+        if (eventSlug) {
+            // In event page mode, back goes to landing
+            navigate('/');
+        } else {
+            setSelectedEvent(null);
+            setSelectedSession(null);
+        }
     };
 
     const handleBackToSessions = () => {
@@ -106,7 +124,6 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin }) {
             <SessionList
                 event={selectedEvent}
                 onSelectSession={handleSessionSelect}
-                onBack={handleBackToEvents}
                 onShowAdmin={() => onShowAdmin(selectedEvent)}
             />
         );

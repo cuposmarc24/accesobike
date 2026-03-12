@@ -1,8 +1,7 @@
 
-import React from 'react';
-import { MdAccessTime, MdEventSeat, MdOutlineCalendarToday, MdDeveloperMode } from 'react-icons/md';
+import { MdAccessTime, MdOutlineCalendarToday, MdDeveloperMode } from 'react-icons/md';
 
-function SessionList({ event, onSelectSession, onBack, onShowAdmin }) {
+function SessionList({ event, onSelectSession, onShowAdmin }) {
     // Extract theme colors: Check event.config.theme first (SeatMap pattern), then event.theme
     const config = event.config || {};
     const theme = config.theme || event.theme || {};
@@ -21,21 +20,6 @@ function SessionList({ event, onSelectSession, onBack, onShowAdmin }) {
     // Let's assume for now we want to support the "Rodada 1" and "Rodada 2" logic 
     // implied in previous conversations if not explicitly defined.
     // BUT safer to genericize: if no sessions defined, show one "General Session".
-
-    const sessions = event.sessions || [
-        { id: 'session-1', name: 'Sesión General', time: 'Horario del Evento', seats_available: 'Ver disponibilidad' }
-    ];
-
-    // If the user previously mentioned "Rodada 1" and "Rodada 2", let's enable that 
-    // via a check or just smart defaults for the "Aniversario" type events if we can detect them.
-    // For this generic component, let's look for a 'sessions' property or default to the event itself acting as one session.
-
-    // Refined Logic: If the event IS "rodada1" or "rodada2" capable (legacy logic), we might manually add them.
-    // But purely dynamic is better. Let's stick to displaying the event itself as the session 
-    // UNLESS we want to split it. 
-
-    // User request: "en caso de q el evento tenga varias sesiones" -> Implies 1..N relationship.
-    // Let's create a visual list.
 
     const displaySessions = (event.config && event.config.sessions) ? event.config.sessions : [
         {
@@ -57,63 +41,37 @@ function SessionList({ event, onSelectSession, onBack, onShowAdmin }) {
             boxSizing: 'border-box'
         }}>
             {/* Header */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '30px',
-                gap: '15px'
-            }}>
-                <button
-                    onClick={onBack}
-                    style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#fff',
-                        cursor: 'pointer',
-                        padding: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '50%',
-                        transition: 'background 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
-                </button>
-                <h1 style={{ fontSize: '24px', fontWeight: '800', margin: 0 }}>Selecciona una Sesión</h1>
-            </div>
-
-            {/* Event Summary Card */}
-            <div style={{
-                background: `linear - gradient(135deg, ${secondaryColor} 0 %, ${backgroundColor} 100 %)`,
-                borderRadius: '24px',
-                padding: '24px',
-                marginBottom: '40px',
-                border: `1px solid ${primaryColor} 40`, // 25% opacity
-                display: 'flex',
-                alignItems: 'center',
-                gap: '20px',
-                boxShadow: `0 10px 30px - 10px ${primaryColor} 20`
-            }}>
-                <div style={{
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: '20px',
-                    backgroundImage: `url(${event.event_image || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1470&auto=format&fit=crop'})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    flexShrink: 0
-                }} />
-                <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#fff' }}>
-                        {event.event_name}
-                    </h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '14px' }}>
-                        <MdOutlineCalendarToday />
-                        <span>{event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Fecha por confirmar'}</span>
+            <div style={{ marginBottom: '32px' }}>
+                {/* Logo + Nombre evento */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                    <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '18px',
+                        backgroundImage: `url(${event.event_image || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=400&auto=format&fit=crop'})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        flexShrink: 0,
+                        border: `2px solid ${primaryColor}30`
+                    }} />
+                    <div>
+                        <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 4px 0', lineHeight: '1.1', letterSpacing: '-0.02em' }}>
+                            {event.event_name}
+                        </h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '13px' }}>
+                            <MdOutlineCalendarToday size={13} />
+                            <span>{event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Fecha por confirmar'}</span>
+                        </div>
                     </div>
+                </div>
+
+                {/* Separator + label */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ height: '1px', flex: 1, background: `linear-gradient(to right, ${primaryColor}40, transparent)` }} />
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: primaryColor, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                        Rodadas disponibles
+                    </span>
+                    <div style={{ height: '1px', flex: 1, background: `linear-gradient(to left, ${primaryColor}40, transparent)` }} />
                 </div>
             </div>
 

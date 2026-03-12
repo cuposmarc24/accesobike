@@ -265,7 +265,7 @@ export const updateEvent = async (eventId, eventData) => {
                 .from('event_admins')
                 .select('*')
                 .eq('event_id', eventId)
-                .single();
+                .maybeSingle();
 
             if (existingAdmin) {
                 // Actualizar admin existente
