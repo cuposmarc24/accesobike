@@ -107,6 +107,23 @@ function SeatMap({ rodada, onBack, session }) {
     if (!eventId || !sessionId || !selectedSeat) return;
 
     try {
+      // 1. Subir comprobante si existe
+      let captureUrl = null;
+      if (formData.captureFile) {
+        const ext = formData.captureFile.name.split('.').pop() || 'jpg';
+        const path = `reservations/${eventId}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('comprobantes')
+          .upload(path, formData.captureFile, { cacheControl: '3600', upsert: false });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from('comprobantes').getPublicUrl(path);
+          captureUrl = urlData?.publicUrl || null;
+        } else {
+          console.warn('Error subiendo comprobante:', uploadError.message);
+        }
+      }
+
+      // 2. Insertar reserva con datos del pago
       const { error } = await supabase
         .from('reservations')
         .insert([{
@@ -115,7 +132,12 @@ function SeatMap({ rodada, onBack, session }) {
           session_id: sessionId,
           customer_name: `${formData.nombre} ${formData.apellido}`,
           customer_phone: formData.telefono,
-          status: 'reservada'
+          status: 'reservada',
+          payment_method_name: formData.paymentMethod?.name || null,
+          payment_monto: formData.paymentData?.monto || null,
+          payment_fecha: formData.paymentData?.fecha || null,
+          payment_referencia: formData.paymentData?.referencia || null,
+          payment_capture_url: captureUrl
         }]);
 
       if (error) throw error;
@@ -123,9 +145,8 @@ function SeatMap({ rodada, onBack, session }) {
       setShowModal(false);
       setPendingReservation({ formData, seat: selectedSeat });
       setShowCustomAlert(true);
-
-      // Removed window.location.reload() here to allow CustomAlert to be seen and handled
     } catch (error) {
+      console.error('Error al reservar:', error);
       alert('Error al realizar la reserva');
     }
   };
@@ -432,45 +453,42 @@ function SeatMap({ rodada, onBack, session }) {
           bottom: '20px',
           left: '20px',
           right: '20px',
-          maxWidth: '360px', // Reduced width
+          maxWidth: '360px',
           margin: '0 auto',
-          background: secondaryColor,
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '20px', // Slightly smaller radius
-          padding: '16px', // Reduced padding
-          boxShadow: '0 -8px 30px rgba(0,0,0,0.6)', // Slightly smaller shadow
+          background: backgroundColor,                          // fondo oscuro del config
+          backdropFilter: 'blur(16px)',
+          border: `1.5px solid ${primaryColor}40`,             // borde con el color config
+          borderRadius: '20px',
+          padding: '16px',
+          boxShadow: `0 -8px 40px rgba(0,0,0,0.7), 0 0 0 1px ${primaryColor}10`,
           zIndex: 1000,
           animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
           <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{
-                width: '48px', // Smaller icon container
-                height: '48px',
-                borderRadius: '12px',
-                background: `${primaryColor}1A`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: '44px', height: '44px', borderRadius: '11px',
+                background: `${primaryColor}15`,
+                border: `1px solid ${primaryColor}30`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: primaryColor
               }}>
-                <MdOutlineDirectionsBike size={24} /> {/* Smaller icon */}
+                <MdOutlineDirectionsBike size={22} />
               </div>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', margin: '0 0 2px 0', color: '#fff' }}> {/* Smaller title */}
+                <h3 style={{ fontSize: '16px', fontWeight: '800', margin: '0 0 2px 0', color: '#e2e8f0', fontFamily: "'Inter', sans-serif" }}>
                   Bici #{selectedSeat.seat_number}
                 </h3>
-                <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}> {/* Smaller subtitle */}
+                <p style={{ fontSize: '12px', color: '#64748b', margin: 0, fontFamily: "'Inter', sans-serif" }}>
                   {currentSession ? currentSession.event_name : 'Clase de Spinning'}
                 </p>
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '2px' }}>Precio</div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>
+              <div style={{ fontSize: '10px', color: '#475569', marginBottom: '2px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>Precio</div>
+              <div style={{ fontSize: '16px', fontWeight: '900', color: primaryColor, fontFamily: "'Inter', sans-serif" }}>
                 {currentSession && currentSession.price ? currentSession.price : 'Consultar'}
               </div>
             </div>
@@ -480,16 +498,20 @@ function SeatMap({ rodada, onBack, session }) {
             onClick={() => setShowModal(true)}
             style={{
               width: '100%',
-              background: primaryColor,
+              background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
               color: backgroundColor,
               border: 'none',
-              borderRadius: '12px', // Smaller radius
-              padding: '12px', // Reduces padding
-              fontSize: '14px', // Smaller font
-              fontWeight: '700',
+              borderRadius: '12px',
+              padding: '13px',
+              fontSize: '14px',
+              fontWeight: '800',
               cursor: 'pointer',
-              boxShadow: `0 4px 15px ${primaryColor}4D`
+              fontFamily: "'Inter', sans-serif",
+              boxShadow: `0 6px 20px ${primaryColor}40`,
+              letterSpacing: '0.02em'
             }}
+            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${primaryColor}55`; }}
+            onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 6px 20px ${primaryColor}40`; }}
           >
             Reservar Ahora
           </button>
@@ -500,11 +522,14 @@ function SeatMap({ rodada, onBack, session }) {
       {showModal && (
         <ReservationModal
           seat={selectedSeat}
+          rodada={rodada}
+          session={currentSession}
           onClose={() => setShowModal(false)}
           onConfirm={handleReservation}
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
           backgroundColor={backgroundColor}
+          eventId={eventId}
         />
       )}
       <CustomAlert isOpen={showCustomAlert} onAccept={() => {

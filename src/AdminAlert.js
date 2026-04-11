@@ -1,154 +1,123 @@
+const font = "'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif";
+
 function AdminAlert({ isOpen, type, title, message, onConfirm, onCancel, theme }) {
   if (!isOpen) return null;
 
-  // Usar colores del tema si están disponibles
   const primaryColor = theme?.primaryColor || '#13c8ec';
-  const secondaryColor = theme?.secondaryColor || '#1a2c30';
   const backgroundColor = theme?.backgroundColor || '#111f22';
 
-  const getIcon = () => {
-    switch (type) {
-      case 'success': return '✅';
-      case 'error': return '❌';
-      case 'warning': return '⚠️';
-      case 'confirm': return '❓';
-      default: return '💡';
-    }
+  const typeConfig = {
+    success: { color: '#22c55e', icon: null, svg: 'check' },
+    error:   { color: '#ef4444', icon: null, svg: 'x' },
+    warning: { color: '#f59e0b', icon: null, svg: 'warn' },
+    confirm: { color: primaryColor, icon: null, svg: 'question' },
+    default: { color: primaryColor, icon: null, svg: 'question' },
   };
 
-  const getColor = () => {
-    switch (type) {
-      case 'success': return '#10b981';
-      case 'error': return '#ef4444';
-      case 'warning': return '#f59e0b';
-      case 'confirm': return primaryColor;
-      default: return primaryColor;
-    }
-  };
+  const cfg = typeConfig[type] || typeConfig.default;
+  const c = cfg.color;
 
-  const handleConfirm = () => {
-    if (typeof onConfirm === 'function') {
-      onConfirm();
-    }
-  };
-
-  const handleCancel = () => {
-    if (typeof onCancel === 'function') {
-      onCancel();
-    }
+  const IconSvg = () => {
+    if (type === 'success') return (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 6L9 17l-5-5" />
+      </svg>
+    );
+    if (type === 'error') return (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    );
+    if (type === 'warning') return (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    );
+    // confirm / default
+    return (
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    );
   };
 
   return (
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 2000
+      position: 'fixed', inset: 0,
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      backdropFilter: 'blur(6px)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center',
+      zIndex: 2000, padding: '20px'
     }}>
       <div style={{
-        background: secondaryColor,
+        background: backgroundColor,          // fondo oscuro del config
         borderRadius: '20px',
-        padding: '40px 30px',
-        margin: '20px',
-        maxWidth: '400px',
-        width: '90%',
-        border: `2px solid ${getColor()}`,
-        boxShadow: `0 25px 50px rgba(0, 0, 0, 0.7), 0 0 30px ${getColor()}30`,
-        textAlign: 'center'
+        padding: '32px 28px',
+        maxWidth: '380px',
+        width: '100%',
+        border: `1.5px solid ${c}40`,         // borde con el color del tipo
+        boxShadow: `0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px ${c}10`,
+        textAlign: 'center',
+        fontFamily: font
       }}>
-        {/* Icono */}
+        {/* Ícono SVG */}
         <div style={{
-          fontSize: '48px',
-          marginBottom: '20px'
+          width: '56px', height: '56px', borderRadius: '50%',
+          background: `${c}15`, border: `1.5px solid ${c}35`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 18px'
         }}>
-          {getIcon()}
+          <IconSvg />
         </div>
 
         {/* Título */}
         <h3 style={{
-          color: getColor(),
-          fontSize: '20px',
-          fontWeight: '700',
-          marginBottom: '15px',
-          lineHeight: '1.4'
+          color: '#e2e8f0', fontSize: '17px', fontWeight: '800',
+          margin: '0 0 10px', fontFamily: font, letterSpacing: '-0.2px'
         }}>
           {title}
         </h3>
-        
+
         {/* Mensaje */}
         <p style={{
-          color: 'white',
-          fontSize: '16px',
-          marginBottom: '30px',
-          lineHeight: '1.5'
+          color: '#64748b', fontSize: '14px', margin: '0 0 26px',
+          lineHeight: '1.6', fontFamily: font
         }}>
           {message}
         </p>
 
         {/* Botones */}
-        <div style={{
-          display: 'flex',
-          gap: '15px',
-          justifyContent: 'center'
-        }}>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
           {onCancel && (
             <button
-              onClick={handleCancel}
+              onClick={onCancel}
               style={{
-                background: backgroundColor,
-                color: '#94a3b8',
-                border: `1px solid rgba(255, 255, 255, 0.1)`,
-                borderRadius: '12px',
-                padding: '12px 25px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                minWidth: '100px',
-                transition: 'all 0.2s'
+                flex: 1, padding: '12px 20px', borderRadius: '11px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(255,255,255,0.04)',
+                color: '#94a3b8', fontSize: '14px', fontWeight: '600',
+                cursor: 'pointer', fontFamily: font, transition: 'all 0.15s'
               }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                e.currentTarget.style.color = '#94a3b8';
-              }}
+              onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#e2e8f0'; }}
+              onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#94a3b8'; }}
             >
               Cancelar
             </button>
           )}
 
           <button
-            onClick={handleConfirm}
+            onClick={onConfirm}
             style={{
-              background: getColor(),
-              color: type === 'confirm' ? backgroundColor : 'white',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '12px 25px',
-              fontSize: '14px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              minWidth: '100px',
-              boxShadow: `0 4px 15px ${getColor()}4D`,
-              transition: 'all 0.2s'
+              flex: onCancel ? 1.4 : 1,
+              padding: '12px 20px', borderRadius: '11px', border: 'none',
+              background: `linear-gradient(135deg, ${c}, ${c}cc)`,
+              color: 'white', fontSize: '14px', fontWeight: '800',
+              cursor: 'pointer', fontFamily: font,
+              boxShadow: `0 6px 18px ${c}40`,
+              transition: 'all 0.15s'
             }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = `0 6px 20px ${getColor()}60`;
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = `0 4px 15px ${getColor()}4D`;
-            }}
+            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 8px 22px ${c}55`; }}
+            onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 6px 18px ${c}40`; }}
           >
             {type === 'confirm' ? 'Confirmar' : 'Aceptar'}
           </button>

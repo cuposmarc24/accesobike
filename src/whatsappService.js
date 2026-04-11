@@ -8,13 +8,20 @@ export const sendWhatsAppMessage = (reservationData, seat, rodada, config) => {
     return;
   }
 
-  // Determine event name and details based on rodada type (string or object)
   const isEventObject = typeof rodada === 'object' && rodada !== null;
-
   const eventName = isEventObject ? (rodada.event_name || 'Evento de Ciclismo') : 'Evento AccesoBike';
-  const sessionName = isEventObject ?
-    (rodada.rodada || 'Sesión Única') :
-    (rodada === 'rodada1' ? 'Rodada 1 - 05:30 PM' : 'Rodada 2 - 07:00 PM'); // Legacy fallback
+  const sessionName = isEventObject
+    ? (rodada.rodada || 'Sesión Única')
+    : (rodada === 'rodada1' ? 'Rodada 1 - 05:30 PM' : 'Rodada 2 - 07:00 PM');
+
+  // Datos del pago
+  const pm = reservationData.paymentMethod;
+  const pd = reservationData.paymentData;
+  const paymentBlock = pm ? `
+💳 *Pago:*
+- Método: ${pm.name} (${pm.currency})
+- Monto: ${pd?.monto || 'No indicado'}
+- Fecha: ${pd?.fecha || 'No indicada'}${pm.requires_reference && pd?.referencia ? `\n- Referencia: ${pd.referencia}` : ''}` : '';
 
   const message = `🎉 *NUEVA RESERVA - ${eventName}* 🎉
 
@@ -25,7 +32,7 @@ export const sendWhatsAppMessage = (reservationData, seat, rodada, config) => {
 🚴‍♀️ *Detalles de la Reserva:*
 - Asiento: #${seat.seat_number}
 - ${sessionName}
-
+${paymentBlock}
 ⏳ *Estado:* Reserva por confirmar
 📅 *Fecha:* ${new Date().toLocaleDateString()}`;
 
@@ -146,7 +153,7 @@ Lamentamos informarte que tu reservación ha sido cancelada.
 🚴‍♀️ *Detalles de la reserva cancelada:*
 - Asiento: #${reservation.seats?.seat_number}
 - ${sessionName}
-
+${reservation.cancellationReason ? `\n📝 *Motivo:* ${reservation.cancellationReason}\n` : ''}
 🎯 *Estado:* CANCELADA
 📅 *Fecha del evento:* ${eventDate}
 

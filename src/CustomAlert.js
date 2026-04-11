@@ -1,86 +1,91 @@
 import { useState } from 'react';
 
-function CustomAlert({ isOpen, message, onAccept, primaryColor = '#00ff41', secondaryColor = '#1a1a1a', backgroundColor = '#111f22' }) {
+const font = "'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif";
+
+function CustomAlert({ isOpen, onAccept, primaryColor = '#13c8ec', backgroundColor = '#111f22' }) {
   if (!isOpen) return null;
 
   return (
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      backdropFilter: 'blur(4px)',
+      inset: 0,
+      background: 'rgba(0,0,0,0.8)',
+      backdropFilter: 'blur(6px)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 2000
+      zIndex: 2000,
+      padding: '20px'
     }}>
       <div style={{
-        background: secondaryColor,
-        borderRadius: '24px',
-        padding: '40px 30px',
-        margin: '20px',
-        maxWidth: '350px',
+        background: backgroundColor,           // Fondo oscuro de la CONFIG
+        borderRadius: '20px',
+        padding: '36px 28px',
+        maxWidth: '340px',
         width: '100%',
-        border: `2px solid ${primaryColor}4D`, // Opacity 30%
-        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.7)',
-        textAlign: 'center'
+        border: `1.5px solid ${primaryColor}50`,  // Solo borde con el color config
+        boxShadow: `0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px ${primaryColor}15`,
+        textAlign: 'center',
+        fontFamily: font
       }}>
-        {/* Icono */}
+        {/* Ícono */}
         <div style={{
-          fontSize: '48px',
-          marginBottom: '20px'
+          width: '64px',
+          height: '64px',
+          borderRadius: '50%',
+          background: `${primaryColor}18`,
+          border: `1.5px solid ${primaryColor}40`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 20px'
         }}>
-          ✅
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
         </div>
 
-        {/* Mensaje */}
         <h3 style={{
-          color: primaryColor,
-          fontSize: '20px',
-          fontWeight: '700',
-          marginBottom: '15px',
-          lineHeight: '1.4'
+          color: '#e2e8f0',
+          fontSize: '18px',
+          fontWeight: '800',
+          margin: '0 0 10px',
+          letterSpacing: '-0.3px',
+          fontFamily: font
         }}>
           Reserva por confirmar
         </h3>
 
         <p style={{
-          color: '#94a3b8', // Consistent text color
-          fontSize: '16px',
-          marginBottom: '30px',
-          lineHeight: '1.5'
+          color: '#64748b',
+          fontSize: '14px',
+          margin: '0 0 28px',
+          lineHeight: '1.6',
+          fontFamily: font
         }}>
-          Se abrirá WhatsApp para que notifiques tu reservación.
+          Se abrirá WhatsApp para que puedas notificar tu pago al administrador.
         </p>
 
-        {/* Botón */}
         <button
           onClick={onAccept}
           style={{
-            background: primaryColor,
+            background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
             color: backgroundColor,
             border: 'none',
-            borderRadius: '16px',
-            padding: '16px 30px',
-            fontSize: '18px',
-            fontWeight: '700',
+            borderRadius: '12px',
+            padding: '13px 32px',
+            fontSize: '15px',
+            fontWeight: '800',
             cursor: 'pointer',
-            boxShadow: `0 8px 20px ${primaryColor}66`,
-            transition: 'all 0.3s ease'
+            fontFamily: font,
+            boxShadow: `0 6px 20px ${primaryColor}40`,
+            width: '100%',
+            transition: 'transform 0.15s, box-shadow 0.15s'
           }}
-          onMouseOver={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = `0 12px 25px ${primaryColor}80`;
-          }}
-          onMouseOut={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = `0 8px 20px ${primaryColor}66`;
-          }}
+          onMouseOver={e => { e.target.style.transform = 'translateY(-1px)'; }}
+          onMouseOut={e => { e.target.style.transform = 'translateY(0)'; }}
         >
-          Aceptar
+          Abrir WhatsApp
         </button>
       </div>
     </div>
