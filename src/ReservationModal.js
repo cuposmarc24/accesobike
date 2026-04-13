@@ -162,6 +162,10 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
       alert('El número de teléfono debe tener al menos 10 dígitos');
       return;
     }
+    if (selectedMethod && !paymentData.monto) {
+      alert('Por favor ingresa el monto del pago');
+      return;
+    }
     if (selectedMethod?.requires_reference && !paymentData.referencia) {
       alert('Este método de pago requiere número de referencia');
       return;
@@ -214,12 +218,6 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b', fontFamily: font }}>
             Bici #{seat?.seat_number} · {rodada?.event_name || 'Evento'}
-            {sessionPrice && (
-              <span style={{ marginLeft: '8px', color: primaryColor, fontWeight: '700' }}>
-                ${sessionPrice}
-                {convertToBs(sessionPrice) && <span style={{ color: '#64748b', fontWeight: '400' }}> · Bs {convertToBs(sessionPrice)}</span>}
-              </span>
-            )}
           </p>
         </div>
 
@@ -316,6 +314,43 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
                 })}
               </div>
 
+              {/* Indicador de monto a pagar - junto a métodos de pago */}
+              {sessionPrice && (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font }}>
+                    A pagar:
+                  </span>
+                  {/* Precio en USD */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px', padding: '5px 10px'
+                  }}>
+                    <span style={{ fontSize: '10px', color: '#64748b', fontFamily: font, fontWeight: '600' }}>USD</span>
+                    <span style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: '800', fontFamily: font }}>
+                      ${parseFloat(String(sessionPrice).replace(/[^0-9.]/g, '')).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Conversión Bs - solo cuando el método seleccionado es en Bs */}
+                  {selectedMethod && (selectedMethod.currency === 'BS' || selectedMethod.currency === 'Bs' || selectedMethod.currency === 'VES') && convertToBs(sessionPrice) && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', color: '#475569', fontSize: '12px' }}>≈</div>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '5px',
+                        background: `${primaryColor}12`, border: `1px solid ${primaryColor}30`,
+                        borderRadius: '8px', padding: '5px 10px'
+                      }}>
+                        <span style={{ fontSize: '10px', color: primaryColor, fontFamily: font, fontWeight: '600' }}>BS</span>
+                        <span style={{ fontSize: '14px', color: primaryColor, fontWeight: '800', fontFamily: font }}>
+                          {convertToBs(sessionPrice)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Campos del pago */}
               {selectedMethod && (
                 <div style={{
@@ -326,50 +361,14 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
                   marginBottom: '4px'
                 }}>
                   <p style={{ margin: '0 0 12px', fontSize: '10px', fontWeight: '700', color: '#475569', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: font }}>
-                    Datos de la transferencia
+                    Datos de pago
                   </p>
 
-                  {/* ── Monto con indicador de moneda y conversión ── */}
+                  {/* ── Monto con indicador de moneda ── */}
                   <div style={{ marginBottom: '14px' }}>
                     <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font, display: 'block', marginBottom: '6px' }}>
                       Monto <span style={{ color: '#ef4444' }}>*</span>
                     </span>
-
-                    {/* Tarjeta de precios - muestra USD y Bs */}
-                    {sessionPrice && (
-                      <div style={{
-                        display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap'
-                      }}>
-                        {/* Precio original USD */}
-                        <div style={{
-                          display: 'flex', alignItems: 'center', gap: '5px',
-                          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '8px', padding: '5px 10px'
-                        }}>
-                          <span style={{ fontSize: '10px', color: '#64748b', fontFamily: font, fontWeight: '600' }}>USD</span>
-                          <span style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: '800', fontFamily: font }}>
-                            ${parseFloat(String(sessionPrice).replace(/[^0-9.]/g, '')).toFixed(2)}
-                          </span>
-                        </div>
-
-                        {/* Conversión Bs */}
-                        {convertToBs(sessionPrice) && (
-                          <>
-                            <div style={{ display: 'flex', alignItems: 'center', color: '#475569', fontSize: '12px' }}>≈</div>
-                            <div style={{
-                              display: 'flex', alignItems: 'center', gap: '5px',
-                              background: `${primaryColor}12`, border: `1px solid ${primaryColor}30`,
-                              borderRadius: '8px', padding: '5px 10px'
-                            }}>
-                              <span style={{ fontSize: '10px', color: primaryColor, fontFamily: font, fontWeight: '600' }}>BS</span>
-                              <span style={{ fontSize: '14px', color: primaryColor, fontWeight: '800', fontFamily: font }}>
-                                {convertToBs(sessionPrice)}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
 
                     {/* Input con símbolo de la moneda del método */}
                     <div style={{ position: 'relative' }}>
@@ -395,7 +394,7 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
                   </div>
 
                   {/* Fecha */}
-                  <Field label="Fecha de la transferencia" name="fecha" icon={MdCalendarToday}
+                  <Field label="Fecha de pago" name="fecha" icon={MdCalendarToday}
                     type="date" placeholder=""
                     value={paymentData.fecha} onChange={handlePaymentInput} primaryColor={primaryColor} required />
 
