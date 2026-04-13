@@ -105,7 +105,10 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
     } else if (name === 'nombre' || name === 'apellido') {
       setFormData(p => ({ ...p, [name]: value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').toUpperCase() }));
     } else if (name === 'telefono') {
-      setFormData(p => ({ ...p, telefono: value.replace(/\D/g, '') }));
+      // Permitir + al inicio (código de país) y solo dígitos después
+      const raw = value.replace(/[^\d+]/g, '');
+      const clean = raw.startsWith('+') ? '+' + raw.slice(1).replace(/\D/g, '') : raw.replace(/\D/g, '');
+      setFormData(p => ({ ...p, telefono: clean }));
     } else {
       setFormData(p => ({ ...p, [name]: value }));
     }
@@ -184,9 +187,16 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
 
   const handleClose = () => { resetAll(); onClose(); };
 
-  const phoneLength = formData.telefono.length;
+  // Número limpio (solo dígitos) para contar y validar
+  const phoneDigits = formData.telefono.replace(/\D/g, '');
+  const phoneLength = phoneDigits.length;
   const phoneOk = phoneLength >= 10;
-  const phoneWarn = phoneLength > 0 && !phoneOk;
+  const phoneWarn = formData.telefono.length > 0 && !phoneOk;
+
+  // Número normalizado para WhatsApp: quitar + y espacios → wa.me/XXXX
+  const whatsappPreview = phoneOk
+    ? formData.telefono.replace(/[^\d]/g, '') // solo dígitos, sin +
+    : null;
 
   return (
     <div style={{
@@ -232,7 +242,7 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
           <Field label="Nombre" name="nombre" icon={MdPerson} placeholder="Tu nombre" value={formData.nombre} onChange={handleInput} primaryColor={primaryColor} required />
           <Field label="Apellido" name="apellido" icon={MdPerson} placeholder="Tu apellido" value={formData.apellido} onChange={handleInput} primaryColor={primaryColor} required />
 
-          {/* Teléfono con counter */}
+          {/* Teléfono con counter y preview WhatsApp */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
               <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font }}>
@@ -248,16 +258,26 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
               </div>
               <input
                 type="tel" name="telefono" value={formData.telefono} onChange={handleInput}
-                placeholder="04121234567" maxLength={15}
+                placeholder="+58 4121234567 o 04121234567" maxLength={16}
                 style={{
                   width: '100%', padding: '11px 12px 11px 36px', borderRadius: '10px', boxSizing: 'border-box',
-                  border: `1.5px solid ${phoneWarn ? '#ef444460' : 'rgba(255,255,255,0.08)'}`,
+                  border: `1.5px solid ${phoneWarn ? '#ef444460' : phoneOk ? '#22c55e40' : 'rgba(255,255,255,0.08)'}`,
                   background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '14px',
                   fontFamily: font, fontWeight: '500', outline: 'none'
                 }}
               />
             </div>
-            {phoneWarn && <p style={{ margin: '4px 0 0 2px', fontSize: '11px', color: '#ef4444', fontFamily: font }}>Faltan {10 - phoneLength} dígitos</p>}
+            {phoneWarn && (
+              <p style={{ margin: '4px 0 0 2px', fontSize: '11px', color: '#ef4444', fontFamily: font }}>
+                Mínimo 10 dígitos. Incluye código de país si es internacional (ej: +1, +34)
+              </p>
+            )}
+            {whatsappPreview && (
+              <p style={{ margin: '4px 0 0 2px', fontSize: '11px', color: '#22c55e', fontFamily: font, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>✓</span>
+                <span>wa.me/<strong>{whatsappPreview}</strong></span>
+              </p>
+            )}
           </div>
 
           {/* ── Sección: Pago ── */}

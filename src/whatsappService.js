@@ -73,33 +73,13 @@ export const sendVIPAssignmentWhatsApp = (bidData, seat) => {
   window.open(whatsappUrl, '_blank');
 };
 
-// FUNCIÓN para normalizar número de teléfono
+// FUNCIÓN para normalizar número de teléfono para wa.me (solo dígitos, sin +)
+// No asume código de país — respeta lo que el usuario ingresó
 const normalizePhoneNumber = (phone) => {
-  // Remover todos los caracteres que no sean números
-  let cleanPhone = phone.replace(/\D/g, '');
-
-  // Si el número comienza con 58, agregar +
-  if (cleanPhone.startsWith('58')) {
-    return `+${cleanPhone}`;
-  }
-
-  // Si el número comienza con 0, remover el 0 y agregar +58
-  if (cleanPhone.startsWith('0')) {
-    return `+58${cleanPhone.substring(1)}`;
-  }
-
-  // Si el número no tiene código de país, agregar +58
-  if (cleanPhone.length === 10) {
-    return `+58${cleanPhone}`;
-  }
-
-  // Si ya tiene +58, dejarlo como está
-  if (phone.startsWith('+58')) {
-    return phone;
-  }
-
-  // Por defecto agregar +58
-  return `+58${cleanPhone}`;
+  if (!phone) return '';
+  // Si el usuario incluyó + (código de país internacional), quitarlo para la URL
+  // wa.me no acepta +, solo dígitos
+  return phone.replace(/[^\d]/g, '');
 };
 
 // Función para formatear hora de 24h a 12h con AM/PM
