@@ -431,7 +431,7 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
                     <label style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px', fontFamily: font }}>
                       Comprobante / Captura
                     </label>
-                    <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleCapture} style={{ display: 'none' }} />
+                    <input ref={fileRef} type="file" accept="image/*" onChange={handleCapture} style={{ display: 'none' }} />
 
                     {capturePreview ? (
                       <div style={{ position: 'relative' }}>

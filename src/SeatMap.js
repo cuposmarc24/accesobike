@@ -424,7 +424,7 @@ function SeatMap({ rodada, onBack, session }) {
               maxWidth: '500px',
               margin: '0 auto'
             }}>
-              {Object.entries(rowsDict).map(([rowNum, rowSeats]) => {
+              {Object.entries(rowsDict).sort((a, b) => Number(a[0]) - Number(b[0])).map(([rowNum, rowSeats]) => {
                 if (rowNum === '1') return null; // Skip Row 1 as it's already rendered
 
                 return (
@@ -498,20 +498,19 @@ function SeatMap({ rodada, onBack, session }) {
             onClick={() => setShowModal(true)}
             style={{
               width: '100%',
-              background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-              color: backgroundColor,
-              border: 'none',
+              background: 'transparent',
+              color: primaryColor,
+              border: `1.5px solid ${primaryColor}`,
               borderRadius: '12px',
               padding: '13px',
               fontSize: '14px',
               fontWeight: '800',
               cursor: 'pointer',
               fontFamily: "'Inter', sans-serif",
-              boxShadow: `0 6px 20px ${primaryColor}40`,
               letterSpacing: '0.02em'
             }}
-            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${primaryColor}55`; }}
-            onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = `0 6px 20px ${primaryColor}40`; }}
+            onMouseOver={e => { e.currentTarget.style.background = `${primaryColor}15`; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
           >
             Reservar Ahora
           </button>

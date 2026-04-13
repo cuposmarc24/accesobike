@@ -286,55 +286,46 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
 
     const handleRowConfigChange = (sessionIndex, rowIndex, value) => {
         setFormData(prev => {
-            const newSessions = [...prev.config.sessions];
-            const newRowConfig = [...newSessions[sessionIndex].rowConfiguration];
-            // Allow empty string, otherwise parse to number
-            newRowConfig[rowIndex] = value === '' ? '' : (parseInt(value) || 0);
-            newSessions[sessionIndex] = {
-                ...newSessions[sessionIndex],
-                rowConfiguration: newRowConfig
-            };
+            const newSessions = prev.config.sessions.map((s, i) => {
+                if (i !== sessionIndex) return s;
+                const newRowConfig = s.rowConfiguration.map((v, ri) =>
+                    ri === rowIndex ? (value === '' ? '' : (parseInt(value) || 0)) : v
+                );
+                return { ...s, rowConfiguration: newRowConfig };
+            });
 
             return {
                 ...prev,
-                config: {
-                    ...prev.config,
-                    sessions: newSessions
-                }
+                config: { ...prev.config, sessions: newSessions }
             };
         });
     };
 
     const addRow = (sessionIndex) => {
         setFormData(prev => {
-            const newSessions = [...prev.config.sessions];
-            newSessions[sessionIndex].rowConfiguration.push(5);
-            newSessions[sessionIndex].seatCount = newSessions[sessionIndex].rowConfiguration.reduce((sum, seats) => sum + seats, 0);
+            const newSessions = prev.config.sessions.map((s, i) => {
+                if (i !== sessionIndex) return s;
+                return { ...s, rowConfiguration: [...s.rowConfiguration, 5] };
+            });
 
             return {
                 ...prev,
-                config: {
-                    ...prev.config,
-                    sessions: newSessions
-                }
+                config: { ...prev.config, sessions: newSessions }
             };
         });
     };
 
     const removeRow = (sessionIndex, rowIndex) => {
         setFormData(prev => {
-            const newSessions = [...prev.config.sessions];
-            if (newSessions[sessionIndex].rowConfiguration.length > 1) {
-                newSessions[sessionIndex].rowConfiguration = newSessions[sessionIndex].rowConfiguration.filter((_, i) => i !== rowIndex);
-                newSessions[sessionIndex].seatCount = newSessions[sessionIndex].rowConfiguration.reduce((sum, seats) => sum + seats, 0);
-            }
+            const newSessions = prev.config.sessions.map((s, i) => {
+                if (i !== sessionIndex) return s;
+                if (s.rowConfiguration.length <= 1) return s;
+                return { ...s, rowConfiguration: s.rowConfiguration.filter((_, ri) => ri !== rowIndex) };
+            });
 
             return {
                 ...prev,
-                config: {
-                    ...prev.config,
-                    sessions: newSessions
-                }
+                config: { ...prev.config, sessions: newSessions }
             };
         });
     };
@@ -441,11 +432,10 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
             case 4: // Disposición de Asientos
                 return formData.config.sessions.every(session => {
                     const rowTotal = session.rowConfiguration.reduce((sum, seats) => {
-                        const seatNum = seats === '' ? 0 : (typeof seats === 'number' ? seats : parseInt(seats) || 0);
-                        return sum + seatNum;
+                        return sum + (seats === '' ? 0 : (parseInt(seats) || 0));
                     }, 0);
-                    const targetTotal = session.seatCount === '' ? 0 : (typeof session.seatCount === 'number' ? session.seatCount : parseInt(session.seatCount) || 0);
-                    return rowTotal === targetTotal && targetTotal > 0;
+                    const target = parseInt(session.seatCount) || 0;
+                    return rowTotal === target && target > 0;
                 });
 
             case 5: // Tema y Configuración
@@ -1388,7 +1378,7 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                             display: 'flex',
                                             justifyContent: 'space-between',
                                             alignItems: 'center',
-                                            marginBottom: '14px'
+                                            marginBottom: '10px'
                                         }}>
                                             <h4 style={{
                                                 color: '#fff',
@@ -1406,20 +1396,31 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                                 fontSize: '12px',
                                                 fontWeight: '700'
                                             }}>
-                                                Total: {session.seatCount} asientos
+                                                {session.rowConfiguration.reduce((sum, s) => sum + (parseInt(s) || 0), 0)} / {parseInt(session.seatCount) || 0} bicis
                                             </div>
+                                        </div>
+                                        <div style={{
+                                            background: 'rgba(19, 200, 236, 0.06)',
+                                            border: '1px solid rgba(19, 200, 236, 0.2)',
+                                            borderRadius: '7px',
+                                            padding: '7px 10px',
+                                            marginBottom: '12px',
+                                            fontSize: '11px',
+                                            color: '#94a3b8'
+                                        }}>
+                                            <span style={{ color: '#13c8ec', fontWeight: '700' }}>★ Fila 1</span> = bicis al lado del instructor (fila frontal)
                                         </div>
 
                                         {session.rowConfiguration.map((seatsInRow, rowIndex) => (
                                             <div key={rowIndex} style={{ marginBottom: '10px' }}>
                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                     <label style={{
-                                                        color: '#94a3b8',
+                                                        color: rowIndex === 0 ? '#13c8ec' : '#94a3b8',
                                                         fontSize: '12px',
-                                                        fontWeight: '500',
-                                                        minWidth: '50px'
+                                                        fontWeight: rowIndex === 0 ? '700' : '500',
+                                                        minWidth: '80px'
                                                     }}>
-                                                        Fila {rowIndex + 1}
+                                                        {rowIndex === 0 ? 'Fila 1 ★' : `Fila ${rowIndex + 1}`}
                                                     </label>
                                                     <input
                                                         type="number"
@@ -1495,12 +1496,9 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
 
                                         {/* Validation Message */}
                                         {(() => {
-                                            const rowTotal = session.rowConfiguration.reduce((sum, seats) => {
-                                                const seatNum = seats === '' ? 0 : (typeof seats === 'number' ? seats : parseInt(seats) || 0);
-                                                return sum + seatNum;
-                                            }, 0);
-                                            const targetTotal = session.seatCount === '' ? 0 : (typeof session.seatCount === 'number' ? session.seatCount : parseInt(session.seatCount) || 0);
-                                            const isValid = rowTotal === targetTotal && targetTotal > 0;
+                                            const rowTotal = session.rowConfiguration.reduce((sum, seats) => sum + (seats === '' ? 0 : (parseInt(seats) || 0)), 0);
+                                            const target = parseInt(session.seatCount) || 0;
+                                            const isValid = rowTotal === target && target > 0;
 
                                             return (
                                                 <div style={{
@@ -1520,8 +1518,8 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                                     </span>
                                                     <span style={{ color: isValid ? '#22c55e' : '#ef4444' }}>
                                                         {isValid
-                                                            ? `Configuración correcta: ${rowTotal} asientos`
-                                                            : `Total de filas: ${rowTotal} / Esperado: ${targetTotal}`
+                                                            ? `Correcto: ${rowTotal} de ${target} bicis distribuidas`
+                                                            : `Distribuidas: ${rowTotal} / Requeridas: ${target}`
                                                         }
                                                     </span>
                                                 </div>

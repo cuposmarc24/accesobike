@@ -758,19 +758,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         alignItems: 'center',
         gap: '12px'
       }}>
-        <button
-          onClick={onBack}
-          style={{
-            background: 'rgba(255,255,255,0.07)',
-            color: 'white', border: 'none',
-            borderRadius: '10px', padding: '8px',
-            cursor: 'pointer', display: 'flex',
-            alignItems: 'center', justifyContent: 'center'
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
-        </button>
-
+        {/* Logo + título */}
         {eventData?.cycling_room_logo && (
           <img
             src={eventData.cycling_room_logo}
@@ -822,6 +810,29 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
           )}
+        </button>
+
+        {/* Botón cerrar sesión — solo ícono */}
+        <button
+          onClick={() => showAlert('confirm', 'Cerrar sesión', '¿Estás seguro que deseas cerrar sesión del panel de administración?',
+            () => onBack(),
+            () => {}
+          )}
+          title="Cerrar sesión"
+          style={{
+            background: 'rgba(239,68,68,0.08)',
+            color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)',
+            borderRadius: '10px', padding: '8px 10px',
+            cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
         </button>
       </div>
 
