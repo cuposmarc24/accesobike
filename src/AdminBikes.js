@@ -2,12 +2,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { MdOutlineDirectionsBike } from 'react-icons/md';
 
-function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundColor, reservations: externalReservations }) {
+function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundColor, reservations: externalReservations, activeTab: externalActiveTab, onTabChange }) {
   const [seats, setSeats] = useState([]);
   const [reservations, setReservations] = useState(externalReservations || []);
   const [loading, setLoading] = useState(!externalReservations);
-  const [activeTab, setActiveTab] = useState(config?.sessions?.[0]?.id || '');
+  const [internalTab, setInternalTab] = useState(config?.sessions?.[0]?.id || '');
   const [selectedSeat, setSelectedSeat] = useState(null);
+
+  // Si el padre controla el tab, usar el suyo; si no, usar el interno
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalTab;
+  const setActiveTab = (id) => {
+    if (onTabChange) onTabChange(id);
+    else setInternalTab(id);
+  };
 
   const sessions = config?.sessions || [];
 
@@ -70,12 +77,31 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
       : reservations.find(r => r.seat_id === seat.id && r.session_id === activeTab) || null;
   };
 
-  const seatsByRow = seats.reduce((acc, seat) => {
-    const row = seat.row_number;
-    if (!acc[row]) acc[row] = [];
-    acc[row].push(seat);
-    return acc;
-  }, {});
+  // Redistribuir por rowConfiguration del config (igual que el público ve las bicis).
+  // Ignoramos row_number de BD porque puede estar desactualizado si se editó el evento.
+  const rowConfig = config?.sessions?.[0]?.rowConfiguration;
+  const seatsByRow = (() => {
+    if (rowConfig?.length > 0 && seats.length > 0) {
+      const sorted = [...seats].sort((a, b) => a.seat_number - b.seat_number);
+      const result = {};
+      let idx = 0;
+      rowConfig.forEach((count, i) => {
+        const n = parseInt(count) || 0;
+        result[i + 1] = [];
+        for (let j = 0; j < n && idx < sorted.length; j++, idx++) {
+          result[i + 1].push(sorted[idx]);
+        }
+      });
+      return result;
+    }
+    // Fallback si no hay rowConfiguration
+    return seats.reduce((acc, seat) => {
+      const row = seat.row_number;
+      if (!acc[row]) acc[row] = [];
+      acc[row].push(seat);
+      return acc;
+    }, {});
+  })();
 
   // Detecta si hay reservas con formato viejo (session_id == event_id)
   const hasOldFormat = reservations.some(r => r.session_id === eventId);
@@ -104,8 +130,8 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
   return (
     <div style={{ fontFamily: 'Inter, sans-serif' }}>
 
-      {/* Tabs de sesión — solo si hay más de una */}
-      {sessions.length > 1 && (
+      {/* Tabs de sesión — solo si hay más de una Y el padre no los controla */}
+      {sessions.length > 1 && externalActiveTab === undefined && (
         <div style={{
           display: 'flex', gap: '4px', marginBottom: '14px',
           background: 'rgba(255,255,255,0.03)',
@@ -165,61 +191,74 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
         ))}
       </div>
 
-      {/* Mapa */}
+      {/* Mapa — misma estructura que SeatMap */}
       <div style={{
         border: `1px solid rgba(255,255,255,0.06)`,
-        borderRadius: '14px', padding: '14px', marginBottom: '12px'
+        borderRadius: '14px', padding: '10px 6px', marginBottom: '12px',
+        overflowX: 'auto'
       }}>
-        <div style={{
-          textAlign: 'center', marginBottom: '12px', paddingBottom: '10px',
-          borderBottom: '1px solid rgba(255,255,255,0.05)'
-        }}>
-          <span style={{ color: '#334155', fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            ▲ INSTRUCTOR
-          </span>
-        </div>
+        {(() => {
+          const row1Seats = seatsByRow['1'] || [];
+          const mid = Math.ceil(row1Seats.length / 2);
+          const leftSeats = row1Seats.slice(0, mid);
+          const rightSeats = row1Seats.slice(mid);
 
-        {Object.keys(seatsByRow).sort((a, b) => Number(a) - Number(b)).map(row => (
-          <div key={row} style={{
-            display: 'flex', justifyContent: 'center', gap: '5px',
-            marginBottom: '6px', flexWrap: 'wrap'
-          }}>
-            {seatsByRow[row].map(seat => {
-              const status = getSeatStatus(seat);
-              const res = getSeatReservation(seat);
-              const color = bikeColor(status, seat.is_selectable);
-              const isSelected = selectedSeat?.id === seat.id;
-
-              return (
-                <div
-                  key={seat.id}
-                  onClick={() => seat.is_selectable && setSelectedSeat(isSelected ? null : { ...seat, status, reservation: res })}
-                  style={{
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: '2px',
-                    cursor: seat.is_selectable ? 'pointer' : 'default'
-                  }}
-                >
-                  <div style={{
-                    width: '34px', height: '34px', borderRadius: '50%',
-                    border: isSelected ? `2px solid ${primaryColor}` : `1px solid ${color}50`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isSelected ? `${primaryColor}20` : 'transparent',
-                    boxShadow: isSelected ? `0 0 10px ${primaryColor}50` : 'none',
-                    transition: 'all 0.15s'
-                  }}>
-                    <MdOutlineDirectionsBike size={17} color={isSelected ? primaryColor : color} />
-                  </div>
-                  {seat.is_selectable && (
-                    <span style={{ color: '#2d3748', fontSize: '9px', fontWeight: '600' }}>
-                      {seat.seat_number}
-                    </span>
-                  )}
+          const renderBike = (seat) => {
+            const status = getSeatStatus(seat);
+            const res = getSeatReservation(seat);
+            const color = bikeColor(status, seat.is_selectable);
+            const isSelected = selectedSeat?.id === seat.id;
+            return (
+              <div
+                key={seat.id}
+                onClick={() => seat.is_selectable && setSelectedSeat(isSelected ? null : { ...seat, status, reservation: res })}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: seat.is_selectable ? 'pointer' : 'default' }}
+              >
+                <div style={{
+                  width: '28px', height: '28px', borderRadius: '50%',
+                  border: isSelected ? `2px solid ${primaryColor}` : `1px solid ${color}50`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: isSelected ? `${primaryColor}20` : 'transparent',
+                  boxShadow: isSelected ? `0 0 10px ${primaryColor}50` : 'none',
+                  transition: 'all 0.15s'
+                }}>
+                  <MdOutlineDirectionsBike size={14} color={isSelected ? primaryColor : color} />
                 </div>
-              );
-            })}
-          </div>
-        ))}
+                {seat.is_selectable && (
+                  <span style={{ color: '#2d3748', fontSize: '9px', fontWeight: '600' }}>{seat.seat_number}</span>
+                )}
+              </div>
+            );
+          };
+
+          return (
+            <>
+              {/* Fila instructor — igual que SeatMap */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
+                {leftSeats.length > 0 && (
+                  <div style={{ display: 'flex', gap: '3px' }}>{leftSeats.map(renderBike)}</div>
+                )}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ height: '1px', background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)`, opacity: 0.4, width: '60px', margin: '0 auto 6px' }} />
+                  <span style={{ color: '#334155', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>▲ Instructor</span>
+                </div>
+                {rightSeats.length > 0 && (
+                  <div style={{ display: 'flex', gap: '3px' }}>{rightSeats.map(renderBike)}</div>
+                )}
+              </div>
+
+              {/* Resto de filas */}
+              {Object.entries(seatsByRow).sort((a, b) => Number(a[0]) - Number(b[0])).map(([rowNum, rowSeats]) => {
+                if (rowNum === '1') return null;
+                return (
+                  <div key={rowNum} style={{ display: 'flex', justifyContent: 'center', gap: '3px', marginBottom: '4px', flexWrap: 'nowrap' }}>
+                    {rowSeats.map(renderBike)}
+                  </div>
+                );
+              })}
+            </>
+          );
+        })()}
       </div>
 
       {/* Detalle del asiento seleccionado */}

@@ -15,12 +15,13 @@ import {
   notifyNewReservation
 } from './lib/pushNotifications';
 
-function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventData }) {
-  const { eventId: contextEventId, config: contextConfig } = useEventConfig();
+function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventData: propEventData }) {
+  const { eventId: contextEventId, config: contextConfig, eventData: contextEventData } = useEventConfig();
 
   const eventId = propEventId || contextEventId;
-  // contextConfig viene fresco de la BD; propConfig viene del localStorage y puede estar viejo
   const config = contextConfig || propConfig;
+  // Usar eventData del contexto (siempre fresco desde BD, incluye logo base64)
+  const eventData = contextEventData || propEventData;
 
   // Mismo patrón que SeatMap — usa config del EventConfigProvider (fuente más confiable)
   const primaryColor    = config?.theme?.primaryColor    || '#13c8ec';
@@ -692,9 +693,58 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         );
       }
 
-      default: // dashboard = alerta + mapa de bicis (sin stats duplicadas)
+      default: { // dashboard
+        const sessions = config?.sessions || [];
+        const activeSession = sessions.find(s => s.id === activeSessionTab) || sessions[0];
+        const flyer = activeSession?.image || eventData?.event_image;
+
         return (
           <div style={{ paddingBottom: '100px' }}>
+
+            {/* Selector de sesión con flyer */}
+            {sessions.length > 0 && (
+              <div style={{ marginBottom: '14px' }}>
+                {/* Tabs de sesión */}
+                {sessions.length > 1 && (
+                  <div style={{
+                    display: 'flex', gap: '4px', marginBottom: '10px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '10px', padding: '4px'
+                  }}>
+                    {sessions.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => setActiveSessionTab(s.id)}
+                        style={{
+                          flex: 1, padding: '8px 10px', borderRadius: '8px',
+                          border: 'none', fontSize: '12px', fontWeight: '600',
+                          cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
+                          background: activeSessionTab === s.id ? primaryColor : 'transparent',
+                          color: activeSessionTab === s.id ? backgroundColor : '#64748b',
+                        }}
+                      >
+                        {s.event_name || s.id}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Flyer de la sesión activa */}
+                {flyer && (
+                  <img
+                    src={flyer}
+                    alt="Flyer"
+                    style={{
+                      width: '100%', borderRadius: '12px',
+                      border: `1px solid ${primaryColor}20`,
+                      objectFit: 'cover', display: 'block'
+                    }}
+                  />
+                )}
+              </div>
+            )}
+
             {/* Alerta de pendientes */}
             {pendingReservations.length > 0 && (
               <div style={{
@@ -716,7 +766,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
               </div>
             )}
 
-            {/* Mapa de bicis — ya incluye sus propias stats compactas */}
+            {/* Mapa de bicis — tabs controlados por el dashboard */}
             <AdminBikes
               eventId={eventId}
               config={config}
@@ -724,9 +774,12 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
               secondaryColor={secondaryColor}
               backgroundColor={backgroundColor}
               reservations={reservations}
+              activeTab={activeSessionTab}
+              onTabChange={setActiveSessionTab}
             />
           </div>
         );
+      }
     }
   };
 
