@@ -59,20 +59,26 @@ export const createEvent = async (eventData) => {
         // Generar slug único
         const slug = await generateSlug(eventData.event_name);
 
-        // Preparar datos del evento
+        // Extraer imágenes base64 del config para enviarlas por separado y evitar timeout
+        const configSinImagenes = {
+            ...eventData.config,
+            sessions: (eventData.config.sessions || []).map(s => {
+                const { image, ...rest } = s;
+                return rest; // sin el flyer base64
+            })
+        };
+
+        // Paso 1: crear evento SIN imágenes pesadas
         const eventToCreate = {
             event_name: eventData.event_name.trim(),
             cycling_room: eventData.cycling_room || '',
-            cycling_room_logo: eventData.cycling_room_logo || '',
-            event_image: eventData.event_image || '',
             event_slug: slug,
             start_date: eventData.start_date || null,
             end_date: eventData.end_date || null,
             is_active: eventData.is_active !== undefined ? eventData.is_active : true,
-            config: eventData.config
+            config: configSinImagenes
         };
 
-        // Crear evento
         const { data: createdEvent, error: eventError } = await supabase
             .from('events')
             .insert([eventToCreate])
@@ -85,6 +91,29 @@ export const createEvent = async (eventData) => {
                 success: false,
                 errors: ['Error al crear el evento: ' + eventError.message]
             };
+        }
+
+        // Paso 2: actualizar imágenes por separado (llamada independiente)
+        const imageFields = {};
+        if (eventData.cycling_room_logo) imageFields.cycling_room_logo = eventData.cycling_room_logo;
+        if (eventData.event_image) imageFields.event_image = eventData.event_image;
+
+        // Restaurar flyers de sesiones en el config completo
+        const configCompleto = {
+            ...eventData.config,
+            sessions: (eventData.config.sessions || []).map(s => ({ ...s }))
+        };
+        imageFields.config = configCompleto;
+
+        if (Object.keys(imageFields).length > 0) {
+            const { error: imgError } = await supabase
+                .from('events')
+                .update(imageFields)
+                .eq('id', createdEvent.id);
+
+            if (imgError) {
+                console.warn('Advertencia: no se pudieron guardar las imágenes:', imgError.message);
+            }
         }
 
         // Crear asientos para cada sesión
@@ -198,6 +227,15 @@ export const createSeatsForEvent = async (eventId, sessions) => {
  */
 export const updateEvent = async (eventId, eventData) => {
     try {
+        // Extraer imágenes base64 del config para enviarlas por separado
+        const configSinImagenes = {
+            ...eventData.config,
+            sessions: (eventData.config.sessions || []).map(s => {
+                const { image, ...rest } = s;
+                return rest;
+            })
+        };
+
         // Paso 1: actualizar datos del evento SIN imágenes (evitar timeout por base64 pesado)
         const { data, error } = await supabase
             .from('events')
@@ -207,7 +245,7 @@ export const updateEvent = async (eventId, eventData) => {
                 start_date: eventData.start_date,
                 end_date: eventData.end_date,
                 is_active: eventData.is_active,
-                config: eventData.config
+                config: configSinImagenes
             })
             .eq('id', eventId)
             .select()
@@ -221,24 +259,18 @@ export const updateEvent = async (eventId, eventData) => {
             };
         }
 
-        // Paso 2: actualizar imágenes por separado solo si fueron modificadas
-        // (las imágenes base64 son pesadas y se envían en una llamada separada)
-        const hasLogo = eventData.cycling_room_logo !== undefined;
-        const hasImage = eventData.event_image !== undefined;
-        if (hasLogo || hasImage) {
-            const imageFields = {};
-            if (hasLogo) imageFields.cycling_room_logo = eventData.cycling_room_logo;
-            if (hasImage) imageFields.event_image = eventData.event_image;
+        // Paso 2: actualizar imágenes + config completo (con flyers de sesiones) por separado
+        const imageFields = { config: eventData.config };
+        if (eventData.cycling_room_logo !== undefined) imageFields.cycling_room_logo = eventData.cycling_room_logo;
+        if (eventData.event_image !== undefined) imageFields.event_image = eventData.event_image;
 
-            const { error: imgError } = await supabase
-                .from('events')
-                .update(imageFields)
-                .eq('id', eventId);
+        const { error: imgError } = await supabase
+            .from('events')
+            .update(imageFields)
+            .eq('id', eventId);
 
-            if (imgError) {
-                console.warn('Advertencia: no se pudieron actualizar las imágenes:', imgError.message);
-                // No bloqueamos — el resto del evento ya se guardó correctamente
-            }
+        if (imgError) {
+            console.warn('Advertencia: no se pudieron actualizar las imágenes:', imgError.message);
         }
 
         // Regenerate seats to reflect any configuration changes
