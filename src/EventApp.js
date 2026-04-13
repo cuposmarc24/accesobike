@@ -10,10 +10,10 @@ const SESSION_KEY = 'acb_admin_session';
 function EventContent({ slug }) {
     const navigate = useNavigate();
 
-    // Restaurar sesión desde sessionStorage al montar (solo guarda datos mínimos)
+    // Restaurar sesión desde localStorage al montar (persiste al cerrar browser)
     const restoreSession = () => {
         try {
-            const raw = sessionStorage.getItem(SESSION_KEY);
+            const raw = localStorage.getItem(SESSION_KEY);
             if (!raw) return null;
             const parsed = JSON.parse(raw);
             if (parsed?.slug === slug && parsed?.event_id) return parsed;
@@ -36,10 +36,10 @@ function EventContent({ slug }) {
         setEventAdminUser(user);
         setShowAdminLogin(false);
         setCurrentView('admin');
-        // Persistir solo datos mínimos — sin el evento completo para evitar QuotaExceededError
+        // Persistir solo datos mínimos en localStorage (persiste al cerrar browser)
         try {
             const slim = { slug, event_id: user.event_id, username: user.username };
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify(slim));
+            localStorage.setItem(SESSION_KEY, JSON.stringify(slim));
         } catch { }
     };
 
@@ -47,7 +47,7 @@ function EventContent({ slug }) {
         setCurrentView('home');
         setShowAdminLogin(false);
         setEventAdminUser(null);
-        sessionStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(SESSION_KEY);
     };
 
     if (showAdminLogin) {

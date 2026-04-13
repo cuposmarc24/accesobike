@@ -42,52 +42,52 @@ function SeatMap({ rodada, onBack, session }) {
   const [pendingReservation, setPendingReservation] = useState(null);
   const [auctionBids, setAuctionBids] = useState([]);
 
+  const fetchSeats = async () => {
+    if (!eventId || !sessionId) return;
+
+    try {
+      const { data: seatsData, error: seatsError } = await supabase
+        .from('seats')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('row_number')
+        .order('seat_number');
+
+      if (seatsError) throw seatsError;
+
+      const { data: reservationsData } = await supabase
+        .from('reservations')
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('session_id', sessionId);
+
+      const { data: auctionData } = await supabase
+        .from('auction_bids')
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('session_id', sessionId)
+        .order('bid_amount', { ascending: false });
+
+      setAuctionBids(auctionData || []);
+
+      const seatsWithStatus = seatsData.map(seat => {
+        const reservation = reservationsData?.find(res => res.seat_id === seat.id);
+        return {
+          ...seat,
+          status: reservation ? reservation.status : 'disponible',
+          isReserved: !!reservation
+        };
+      });
+
+      setSeats(seatsWithStatus);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchSeats = async () => {
-      if (!eventId || !sessionId) return;
-
-      try {
-        const { data: seatsData, error: seatsError } = await supabase
-          .from('seats')
-          .select('*')
-          .eq('event_id', eventId)
-          .order('row_number')
-          .order('seat_number');
-
-        if (seatsError) throw seatsError;
-
-        const { data: reservationsData } = await supabase
-          .from('reservations')
-          .select('*')
-          .eq('event_id', eventId)
-          .eq('session_id', sessionId);
-
-        const { data: auctionData } = await supabase
-          .from('auction_bids')
-          .select('*')
-          .eq('event_id', eventId)
-          .eq('session_id', sessionId)
-          .order('bid_amount', { ascending: false });
-
-        setAuctionBids(auctionData || []);
-
-        const seatsWithStatus = seatsData.map(seat => {
-          const reservation = reservationsData?.find(res => res.seat_id === seat.id);
-          return {
-            ...seat,
-            status: reservation ? reservation.status : 'disponible',
-            isReserved: !!reservation
-          };
-        });
-
-        setSeats(seatsWithStatus);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchSeats();
   }, [eventId, sessionId]);
 
@@ -537,8 +537,9 @@ function SeatMap({ rodada, onBack, session }) {
           setPendingReservation(null);
         }
         setShowCustomAlert(false);
-        // Recargar página para actualizar el estado de los asientos
-        window.location.reload();
+        setSelectedSeat(null);
+        // Recargar datos de asientos sin recargar la página
+        fetchSeats();
       }}
         primaryColor={primaryColor}
         secondaryColor={secondaryColor}
