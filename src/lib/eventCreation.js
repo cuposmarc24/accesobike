@@ -198,13 +198,12 @@ export const createSeatsForEvent = async (eventId, sessions) => {
  */
 export const updateEvent = async (eventId, eventData) => {
     try {
+        // Paso 1: actualizar datos del evento SIN imágenes (evitar timeout por base64 pesado)
         const { data, error } = await supabase
             .from('events')
             .update({
                 event_name: eventData.event_name,
                 cycling_room: eventData.cycling_room,
-                cycling_room_logo: eventData.cycling_room_logo,
-                event_image: eventData.event_image,
                 start_date: eventData.start_date,
                 end_date: eventData.end_date,
                 is_active: eventData.is_active,
@@ -220,6 +219,26 @@ export const updateEvent = async (eventId, eventData) => {
                 success: false,
                 errors: ['Error al actualizar el evento: ' + error.message]
             };
+        }
+
+        // Paso 2: actualizar imágenes por separado solo si fueron modificadas
+        // (las imágenes base64 son pesadas y se envían en una llamada separada)
+        const hasLogo = eventData.cycling_room_logo !== undefined;
+        const hasImage = eventData.event_image !== undefined;
+        if (hasLogo || hasImage) {
+            const imageFields = {};
+            if (hasLogo) imageFields.cycling_room_logo = eventData.cycling_room_logo;
+            if (hasImage) imageFields.event_image = eventData.event_image;
+
+            const { error: imgError } = await supabase
+                .from('events')
+                .update(imageFields)
+                .eq('id', eventId);
+
+            if (imgError) {
+                console.warn('Advertencia: no se pudieron actualizar las imágenes:', imgError.message);
+                // No bloqueamos — el resto del evento ya se guardó correctamente
+            }
         }
 
         // Regenerate seats to reflect any configuration changes
