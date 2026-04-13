@@ -198,8 +198,8 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin, eventSlug }) {
                 justifyContent: isEmpty ? 'center' : 'flex-start',
                 alignItems: isEmpty ? 'center' : 'stretch',
 
-                padding: isEmpty ? '0 20px' : '24px 20px', // Remove vertical padding if empty to fix centering
-                paddingBottom: isEmpty ? 0 : '80px',
+                padding: isEmpty ? '0 20px' : '24px 20px',
+                paddingBottom: isEmpty ? 0 : '120px',
                 width: '100%',
                 boxSizing: 'border-box'
             }}>

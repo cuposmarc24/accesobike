@@ -38,6 +38,7 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
             fontFamily: 'Inter, sans-serif',
             color: '#fff',
             padding: '20px',
+            paddingBottom: '100px',
             boxSizing: 'border-box'
         }}>
             {/* Header */}
