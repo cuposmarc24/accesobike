@@ -95,13 +95,25 @@ export const eventAdminAuth = {
                     console.error('Error obteniendo evento:', eventError);
                 }
 
+                // Excluir imágenes base64 del evento para no superar el límite de localStorage (~5MB)
+                const eventSlim = eventData ? {
+                    id: eventData.id,
+                    event_name: eventData.event_name,
+                    event_slug: eventData.event_slug,
+                    cycling_room: eventData.cycling_room,
+                    // Si el logo es una URL (http) lo guardamos; si es base64 lo omitimos
+                    cycling_room_logo: eventData.cycling_room_logo?.startsWith('http') ? eventData.cycling_room_logo : null,
+                    is_active: eventData.is_active,
+                    config: eventData.config
+                } : null;
+
                 const session = {
                     id: adminData.id,
                     username: adminData.username,
                     email: adminData.email,
                     full_name: adminData.full_name,
                     event_id: adminData.event_id,
-                    event: eventData || null,
+                    event: eventSlim,
                     role: 'event_admin',
                     loginTime: new Date().toISOString()
                 };
