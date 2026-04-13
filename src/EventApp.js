@@ -10,22 +10,21 @@ const SESSION_KEY = 'acb_admin_session';
 function EventContent({ slug }) {
     const navigate = useNavigate();
 
-    // Restaurar sesión desde sessionStorage al montar
+    // Restaurar sesión desde sessionStorage al montar (solo guarda datos mínimos)
     const restoreSession = () => {
         try {
             const raw = sessionStorage.getItem(SESSION_KEY);
             if (!raw) return null;
             const parsed = JSON.parse(raw);
-            // Solo restaurar si es del mismo slug/evento
-            if (parsed?.slug === slug) return parsed.user;
+            if (parsed?.slug === slug && parsed?.event_id) return parsed;
         } catch { }
         return null;
     };
 
-    const savedUser = restoreSession();
-    const [currentView, setCurrentView] = useState(savedUser ? 'admin' : 'home');
+    const savedSession = restoreSession();
+    const [currentView, setCurrentView] = useState(savedSession ? 'admin' : 'home');
     const [showAdminLogin, setShowAdminLogin] = useState(false);
-    const [eventAdminUser, setEventAdminUser] = useState(savedUser);
+    const [eventAdminUser, setEventAdminUser] = useState(savedSession);
     const [selectedEventForAdmin, setSelectedEventForAdmin] = useState(null);
 
     const handleShowAdmin = (event = null) => {
@@ -37,9 +36,10 @@ function EventContent({ slug }) {
         setEventAdminUser(user);
         setShowAdminLogin(false);
         setCurrentView('admin');
-        // Persistir sesión
+        // Persistir solo datos mínimos — sin el evento completo para evitar QuotaExceededError
         try {
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({ slug, user }));
+            const slim = { slug, event_id: user.event_id, username: user.username };
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(slim));
         } catch { }
     };
 
