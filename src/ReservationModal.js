@@ -116,9 +116,13 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
 
   const handlePaymentInput = (e) => {
     const { name, value } = e.target;
-    if (name === 'monto' || name === 'referencia') {
-      // Solo numérico
-      setPaymentData(p => ({ ...p, [name]: value.replace(/\D/g, '') }));
+    if (name === 'monto') {
+      // Numérico con punto decimal (ej: 25.50)
+      const clean = value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+      setPaymentData(p => ({ ...p, monto: clean }));
+    } else if (name === 'referencia') {
+      // Solo dígitos
+      setPaymentData(p => ({ ...p, referencia: value.replace(/\D/g, '') }));
     } else {
       setPaymentData(p => ({ ...p, [name]: value }));
     }
