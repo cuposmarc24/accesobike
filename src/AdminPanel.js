@@ -583,10 +583,13 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         );
 
       case 'reservations': {
-        const hasOldFormat = occupiedReservations.some(r => r.session_id === eventId);
-        const filteredOccupied = hasOldFormat
-          ? occupiedReservations
-          : occupiedReservations.filter(r => r.session_id === activeSessionTab);
+        // Filtrar por sesión activa. Reservas con session_id === eventId son
+        // formato viejo (pre-fix) — se asignan a la primera sesión por compatibilidad.
+        const normalizeSessionId = (r) =>
+          (r.session_id === eventId) ? (config?.sessions?.[0]?.id || activeSessionTab) : r.session_id;
+
+        const filteredPending = pendingReservations.filter(r => normalizeSessionId(r) === activeSessionTab);
+        const filteredOccupied = occupiedReservations.filter(r => normalizeSessionId(r) === activeSessionTab);
 
         return (
           <div style={{ paddingBottom: '80px' }}>
@@ -618,12 +621,12 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
 
             {/* Pendientes */}
             <div style={{ marginBottom: '28px' }}>
-              {sectionTitle('Reservas Pendientes', pendingReservations.length)}
-              {pendingReservations.length === 0 ? (
+              {sectionTitle('Reservas Pendientes', filteredPending.length)}
+              {filteredPending.length === 0 ? (
                 <EmptyState icon={MdHourglassEmpty} text="No hay reservas pendientes" />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {pendingReservations.map(r => pendingListRow(r))}
+                  {filteredPending.map(r => pendingListRow(r))}
                 </div>
               )}
             </div>
