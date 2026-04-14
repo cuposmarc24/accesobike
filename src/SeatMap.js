@@ -15,7 +15,9 @@ function SeatMap({ rodada, onBack, session }) {
   // Determine effective session
   const isEventObject = typeof rodada === 'object' && rodada !== null;
   const eventId = isEventObject ? rodada.id : contextEventId;
-  const sessionId = isEventObject ? rodada.id : getSessionId(rodada);
+  // session prop tiene el id correcto de la sesión (ej: "session1", "session2")
+  // Si no llega session, usar rodada.id como fallback (formato legacy)
+  const sessionId = session?.id || (isEventObject ? rodada.id : getSessionId(rodada));
 
   // PRIORIDAD: 
   // 1. Prop 'session' explícita (viene de Home.js)
