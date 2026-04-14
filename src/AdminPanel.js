@@ -591,6 +591,15 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         const filteredPending = pendingReservations.filter(r => normalizeSessionId(r) === activeSessionTab);
         const filteredOccupied = occupiedReservations.filter(r => normalizeSessionId(r) === activeSessionTab);
 
+        // Contar pendientes por sesión para mostrar en cada tab
+        const pendingCountBySession = (sessionId) => {
+          const firstSessionId = config?.sessions?.[0]?.id;
+          return pendingReservations.filter(r => {
+            const sid = (r.session_id === eventId) ? firstSessionId : r.session_id;
+            return sid === sessionId;
+          }).length;
+        };
+
         return (
           <div style={{ paddingBottom: '80px' }}>
             {/* Tabs de sesión */}
@@ -600,22 +609,40 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
                 background: 'rgba(255,255,255,0.03)', borderRadius: '12px',
                 padding: '4px', overflowX: 'auto'
               }}>
-                {config.sessions.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => setActiveSessionTab(s.id)}
-                    style={{
-                      flex: 1, minWidth: '100px', padding: '9px 10px',
-                      borderRadius: '9px', border: 'none', fontSize: '12px',
-                      fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap',
-                      background: activeSessionTab === s.id ? primaryColor : 'transparent',
-                      color: activeSessionTab === s.id ? backgroundColor : '#64748b',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {s.event_name || s.id}
-                  </button>
-                ))}
+                {config.sessions.map(s => {
+                  const isActive = activeSessionTab === s.id;
+                  const pendingCount = pendingCountBySession(s.id);
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setActiveSessionTab(s.id)}
+                      style={{
+                        flex: 1, minWidth: '100px', padding: '9px 10px',
+                        borderRadius: '9px', border: 'none', fontSize: '12px',
+                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap',
+                        background: isActive ? primaryColor : 'transparent',
+                        color: isActive ? backgroundColor : '#64748b',
+                        transition: 'all 0.2s',
+                        position: 'relative'
+                      }}
+                    >
+                      {s.event_name || s.id}
+                      {pendingCount > 0 && (
+                        <span style={{
+                          position: 'absolute', top: '4px', right: '6px',
+                          background: isActive ? backgroundColor : '#ef4444',
+                          color: isActive ? '#ef4444' : '#fff',
+                          borderRadius: '50%', width: '16px', height: '16px',
+                          fontSize: '10px', fontWeight: '800',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          lineHeight: 1
+                        }}>
+                          {pendingCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
