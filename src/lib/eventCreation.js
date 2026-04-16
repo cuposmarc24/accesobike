@@ -273,35 +273,43 @@ export const updateEvent = async (eventId, eventData) => {
             console.warn('Advertencia: no se pudieron actualizar las imágenes:', imgError.message);
         }
 
-        // Regenerate seats to reflect any configuration changes
-        // WARNING: This assumes no critical reservations exist effectively, or we accept wiping them for layout changes.
-        //Ideally, we should check for existing reservations before doing this.
+        // Solo regenerar asientos si NO hay reservas activas
+        // Si hay reservas, conservar los asientos existentes para no perder datos
+        const { data: existingReservations } = await supabase
+            .from('reservations')
+            .select('id')
+            .eq('event_id', eventId)
+            .limit(1);
 
-        // 1. Delete existing seats
-        const { error: deleteError } = await supabase
-            .from('seats')
-            .delete()
-            .eq('event_id', eventId);
+        const hasReservations = existingReservations && existingReservations.length > 0;
 
-        if (deleteError) {
-            console.error('Error deleting old seats:', deleteError);
-            return {
-                success: false,
-                errors: ['Error al actualizar la configuración de asientos: ' + deleteError.message]
-            };
+        if (!hasReservations) {
+            // Sin reservas: regenerar asientos con la nueva configuración
+            const { error: deleteError } = await supabase
+                .from('seats')
+                .delete()
+                .eq('event_id', eventId);
+
+            if (deleteError) {
+                console.error('Error deleting old seats:', deleteError);
+                return {
+                    success: false,
+                    errors: ['Error al actualizar la configuración de asientos: ' + deleteError.message]
+                };
+            }
+
+            const seatsResult = await createSeatsForEvent(eventId, eventData.config.sessions);
+
+            if (!seatsResult.success) {
+                console.error('Error regenerating seats:', seatsResult.errors);
+                return {
+                    success: false,
+                    errors: ['Evento actualizado pero error al regenerar asientos: ' + seatsResult.errors.join(', ')]
+                };
+            }
         }
-
-        // 2. Re-create seats with new config
-        // Note: We use eventData.config.sessions which contains the UPDATED configuration
-        const seatsResult = await createSeatsForEvent(eventId, eventData.config.sessions);
-
-        if (!seatsResult.success) {
-            console.error('Error regenerating seats:', seatsResult.errors);
-            return {
-                success: false,
-                errors: ['Evento actualizado pero error al regenerar asientos: ' + seatsResult.errors.join(', ')]
-            };
-        }
+        // Si hay reservas, los asientos se conservan tal cual para no perder reservas activas
+        // El llamador puede leer seatsPreserved para mostrar un aviso al usuario
 
 
 
@@ -353,7 +361,8 @@ export const updateEvent = async (eventId, eventData) => {
 
         return {
             success: true,
-            event: data
+            event: data,
+            seatsPreserved: hasReservations
         };
 
     } catch (error) {

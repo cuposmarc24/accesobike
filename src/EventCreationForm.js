@@ -382,6 +382,9 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
 
             if (result.success) {
                 console.log('✅ Evento actualizado exitosamente');
+                if (result.seatsPreserved) {
+                    alert('✅ Evento actualizado.\n\nNota: hay reservas activas, por lo que el layout de asientos fue conservado para no perder datos.');
+                }
                 onEventCreated && onEventCreated(result.event);
                 onClose && onClose();
             } else {
