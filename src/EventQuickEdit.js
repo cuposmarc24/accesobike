@@ -1,24 +1,45 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from './lib/supabase';
 
 const font = "'Inter', system-ui, sans-serif";
 
-const Section = ({ title, icon, children, saving, onSave, saveLabel = 'Guardar' }) => {
-  const [open, setOpen] = useState(false);
+// ── Toast global ──
+function Toast({ message }) {
+  if (!message) return null;
   return (
     <div style={{
-      border: '1px solid rgba(255,255,255,0.07)',
-      borderRadius: '14px',
-      overflow: 'hidden',
-      marginBottom: '10px'
+      position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+      background: '#22c55e', color: '#fff', padding: '12px 24px',
+      borderRadius: '12px', fontFamily: font, fontWeight: '700', fontSize: '14px',
+      boxShadow: '0 8px 30px rgba(34,197,94,0.4)',
+      zIndex: 9999, display: 'flex', alignItems: 'center', gap: '8px',
+      whiteSpace: 'nowrap'
     }}>
-      {/* Header */}
+      ✓ {message}
+    </div>
+  );
+}
+
+// ── Sección colapsable ──
+// Recibe `forceClose` para colapsar desde el padre tras guardar
+const Section = ({ title, icon, children, saving, onSave, forceClose }) => {
+  const [open, setOpen] = useState(false);
+
+  // Colapsar cuando el padre lo indique
+  if (forceClose && open) setOpen(false);
+
+  return (
+    <div style={{
+      border: `1px solid ${open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)'}`,
+      borderRadius: '14px', overflow: 'hidden', marginBottom: '10px',
+      transition: 'border-color 0.2s'
+    }}>
       <div
         onClick={() => setOpen(o => !o)}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '14px 16px', cursor: 'pointer',
-          background: open ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+          background: open ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
           transition: 'background 0.2s'
         }}
       >
@@ -26,10 +47,12 @@ const Section = ({ title, icon, children, saving, onSave, saveLabel = 'Guardar' 
           <span style={{ fontSize: '18px' }}>{icon}</span>
           <span style={{ fontFamily: font, fontWeight: '700', fontSize: '14px', color: '#e2e8f0' }}>{title}</span>
         </div>
-        <span style={{ color: '#64748b', fontSize: '18px', transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>⌄</span>
+        <span style={{
+          color: '#64748b', fontSize: '16px', display: 'inline-block',
+          transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s'
+        }}>⌄</span>
       </div>
 
-      {/* Body */}
       {open && (
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           {children}
@@ -42,10 +65,10 @@ const Section = ({ title, icon, children, saving, onSave, saveLabel = 'Guardar' 
                 background: saving ? 'rgba(19,200,236,0.4)' : '#13c8ec',
                 color: '#111f22', border: 'none', borderRadius: '10px',
                 fontFamily: font, fontWeight: '800', fontSize: '14px',
-                cursor: saving ? 'not-allowed' : 'pointer'
+                cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.2s'
               }}
             >
-              {saving ? 'Guardando...' : saveLabel}
+              {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
           )}
         </div>
@@ -72,6 +95,7 @@ const Field = ({ label, value, onChange, type = 'text', placeholder }) => (
 );
 
 const ImageField = ({ label, value, onChange }) => {
+  const ref = useRef();
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -85,9 +109,10 @@ const ImageField = ({ label, value, onChange }) => {
         {label}
       </label>
       {value && (
-        <img src={value} alt={label} style={{ width: '100%', maxHeight: '120px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px', border: '1px solid rgba(255,255,255,0.08)' }} />
+        <img src={value} alt={label} style={{ width: '100%', maxHeight: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px', border: '1px solid rgba(255,255,255,0.08)' }} />
       )}
-      <input type="file" accept="image/*" onChange={handleFile} style={{ color: '#94a3b8', fontSize: '12px', fontFamily: font, width: '100%' }} />
+      <input ref={ref} type="file" accept="image/*" onChange={handleFile}
+        style={{ color: '#94a3b8', fontSize: '12px', fontFamily: font, width: '100%' }} />
     </div>
   );
 };
@@ -123,15 +148,25 @@ function EventQuickEdit({ event, onClose, onSaved }) {
   });
 
   const [saving, setSaving] = useState({});
-  const [saved, setSaved] = useState({});
+  // closedAt[key] = timestamp para forzar colapso tras guardar
+  const [closedAt, setClosedAt] = useState({});
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const markSaving = (key) => setSaving(p => ({ ...p, [key]: true }));
-  const markDone = (key) => {
+
+  const markDone = (key, label) => {
     setSaving(p => ({ ...p, [key]: false }));
-    setSaved(p => ({ ...p, [key]: true }));
-    setTimeout(() => setSaved(p => ({ ...p, [key]: false })), 2000);
+    // Forzar colapso de la sección
+    setClosedAt(p => ({ ...p, [key]: Date.now() }));
+    showToast(label + ' guardado correctamente');
     onSaved && onSaved();
   };
+
   const markError = (key, msg) => {
     setSaving(p => ({ ...p, [key]: false }));
     alert('Error: ' + msg);
@@ -148,7 +183,7 @@ function EventQuickEdit({ event, onClose, onSaved }) {
       is_active: info.is_active
     }).eq('id', event.id);
     if (error) return markError('info', error.message);
-    markDone('info');
+    markDone('info', 'Info general');
   };
 
   // ── Guardar Imágenes ──
@@ -159,22 +194,16 @@ function EventQuickEdit({ event, onClose, onSaved }) {
       cycling_room_logo: images.cycling_room_logo || null
     }).eq('id', event.id);
     if (error) return markError('images', error.message);
-    markDone('images');
+    markDone('images', 'Imágenes');
   };
 
-  // ── Guardar Sesiones (solo datos, sin tocar asientos) ──
+  // ── Guardar Sesiones (datos + flyers, sin tocar asientos) ──
   const saveSessions = async () => {
     markSaving('sessions');
-    // Preservar imágenes originales de sesiones que no cambiaron
-    const originalSessions = event.config?.sessions || [];
-    const mergedSessions = sessions.map(s => {
-      const original = originalSessions.find(o => o.id === s.id);
-      return { ...s, image: s.image || original?.image };
-    });
-    const newConfig = { ...event.config, sessions: mergedSessions };
+    const newConfig = { ...event.config, sessions };
     const { error } = await supabase.from('events').update({ config: newConfig }).eq('id', event.id);
     if (error) return markError('sessions', error.message);
-    markDone('sessions');
+    markDone('sessions', 'Sesiones');
   };
 
   // ── Guardar Admin ──
@@ -201,7 +230,7 @@ function EventQuickEdit({ event, onClose, onSaved }) {
       }]));
     }
     if (error) return markError('admin', error.message);
-    markDone('admin');
+    markDone('admin', 'Usuario admin');
   };
 
   // ── Guardar Tema ──
@@ -210,103 +239,137 @@ function EventQuickEdit({ event, onClose, onSaved }) {
     const newConfig = { ...event.config, theme: { ...event.config?.theme, ...theme } };
     const { error } = await supabase.from('events').update({ config: newConfig }).eq('id', event.id);
     if (error) return markError('theme', error.message);
-    markDone('theme');
+    markDone('theme', 'Colores');
   };
 
-  const saveBtn = (key) => saved[key] ? '✓ Guardado' : saving[key] ? 'Guardando...' : 'Guardar';
-
   return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)',
-      zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-      padding: '16px', overflowY: 'auto'
-    }}>
+    <>
+      <Toast message={toast} />
+
       <div style={{
-        background: backgroundColor, borderRadius: '20px',
-        width: '100%', maxWidth: '480px',
-        marginTop: '16px', marginBottom: '32px',
-        border: `1.5px solid ${primaryColor}40`,
-        boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
-        fontFamily: font, overflow: 'hidden'
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)',
+        zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
+        padding: '16px', overflowY: 'auto'
       }}>
-        {/* Header */}
-        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: primaryColor, fontFamily: font }}>Edición Rápida</h2>
-            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b', fontFamily: font }}>{event.event_name}</p>
-          </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', color: '#94a3b8', cursor: 'pointer', padding: '8px 10px', fontSize: '16px' }}>✕</button>
-        </div>
-
-        <div style={{ padding: '16px' }}>
-          <p style={{ margin: '0 0 14px', fontSize: '11px', color: '#475569', fontFamily: font, lineHeight: '1.5' }}>
-            Abre solo la sección que quieres modificar. Cada sección guarda de forma independiente sin afectar los demás datos ni los asientos reservados.
-          </p>
-
-          {/* Info General */}
-          <Section title="Info General" icon="📋" onSave={saveInfo} saving={saving.info} saveLabel={saveBtn('info')}>
-            <Field label="Nombre del evento" value={info.event_name} onChange={v => setInfo(p => ({ ...p, event_name: v }))} />
-            <Field label="Sala / Ubicación" value={info.cycling_room} onChange={v => setInfo(p => ({ ...p, cycling_room: v }))} />
-            <Field label="Fecha inicio" value={info.start_date} onChange={v => setInfo(p => ({ ...p, start_date: v }))} type="date" />
-            <Field label="Fecha fin" value={info.end_date} onChange={v => setInfo(p => ({ ...p, end_date: v }))} type="date" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-              <input type="checkbox" id="is_active" checked={info.is_active} onChange={e => setInfo(p => ({ ...p, is_active: e.target.checked }))} style={{ width: '16px', height: '16px', accentColor: primaryColor }} />
-              <label htmlFor="is_active" style={{ color: '#e2e8f0', fontSize: '14px', fontFamily: font }}>Evento activo (visible al público)</label>
+        <div style={{
+          background: backgroundColor, borderRadius: '20px',
+          width: '100%', maxWidth: '480px',
+          marginTop: '16px', marginBottom: '32px',
+          border: `1.5px solid ${primaryColor}40`,
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
+          fontFamily: font, overflow: 'hidden'
+        }}>
+          {/* Header */}
+          <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: primaryColor, fontFamily: font }}>Edición Rápida</h2>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b', fontFamily: font }}>{event.event_name}</p>
             </div>
-          </Section>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', color: '#94a3b8', cursor: 'pointer', padding: '8px 10px', fontSize: '16px' }}>✕</button>
+          </div>
 
-          {/* Imágenes */}
-          <Section title="Imágenes" icon="🖼️" onSave={saveImages} saving={saving.images} saveLabel={saveBtn('images')}>
-            <ImageField label="Foto / Flyer del evento" value={images.event_image} onChange={v => setImages(p => ({ ...p, event_image: v }))} />
-            <ImageField label="Logo de la sala" value={images.cycling_room_logo} onChange={v => setImages(p => ({ ...p, cycling_room_logo: v }))} />
-          </Section>
-
-          {/* Sesiones */}
-          <Section title="Sesiones (precio, hora, instructores)" icon="🚴" onSave={saveSessions} saving={saving.sessions} saveLabel={saveBtn('sessions')}>
-            <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#f59e0b', fontFamily: font }}>
-              ⚠️ Solo edita precio, hora e instructores. El número de bicis no se puede cambiar si hay reservas activas.
+          <div style={{ padding: '16px' }}>
+            <p style={{ margin: '0 0 14px', fontSize: '11px', color: '#475569', fontFamily: font, lineHeight: '1.5' }}>
+              Abre la sección que quieres modificar y presiona guardar. Cada sección es independiente y no afecta asientos ni reservas activas.
             </p>
-            {sessions.map((s, i) => (
-              <div key={s.id} style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p style={{ margin: '0 0 10px', fontSize: '12px', fontWeight: '700', color: primaryColor, fontFamily: font }}>{s.event_name || `Sesión ${i + 1}`}</p>
-                <Field label="Nombre de la sesión" value={s.event_name} onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, event_name: v } : x))} />
-                <Field label="Hora (HH:MM)" value={s.time} onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, time: v } : x))} placeholder="18:00" />
-                <Field label="Precio (USD)" value={s.price} onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, price: v } : x))} placeholder="25.00" />
-                {(s.instructors || []).map((inst, k) => (
-                  <Field key={k} label={`Instructor ${k + 1}`} value={inst.name} onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, instructors: x.instructors.map((ins, l) => l === k ? { ...ins, name: v } : ins) } : x))} />
-                ))}
+
+            {/* Info General */}
+            <Section title="Info General" icon="📋" onSave={saveInfo} saving={saving.info} forceClose={closedAt.info}>
+              <Field label="Nombre del evento" value={info.event_name} onChange={v => setInfo(p => ({ ...p, event_name: v }))} />
+              <Field label="Sala / Ubicación" value={info.cycling_room} onChange={v => setInfo(p => ({ ...p, cycling_room: v }))} />
+              <Field label="Fecha inicio" value={info.start_date} onChange={v => setInfo(p => ({ ...p, start_date: v }))} type="date" />
+              <Field label="Fecha fin" value={info.end_date} onChange={v => setInfo(p => ({ ...p, end_date: v }))} type="date" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                <input type="checkbox" id="is_active" checked={info.is_active}
+                  onChange={e => setInfo(p => ({ ...p, is_active: e.target.checked }))}
+                  style={{ width: '16px', height: '16px', accentColor: primaryColor }} />
+                <label htmlFor="is_active" style={{ color: '#e2e8f0', fontSize: '14px', fontFamily: font }}>
+                  Evento activo (visible al público)
+                </label>
               </div>
-            ))}
-          </Section>
+            </Section>
 
-          {/* Admin */}
-          <Section title="Usuario Admin" icon="🔑" onSave={saveAdmin} saving={saving.admin} saveLabel={saveBtn('admin')}>
-            <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#64748b', fontFamily: font }}>Deja en blanco si no quieres cambiar las credenciales.</p>
-            <Field label="Nuevo usuario" value={adminCreds.username} onChange={v => setAdminCreds(p => ({ ...p, username: v }))} placeholder="admin123" />
-            <Field label="Nueva contraseña" value={adminCreds.password} onChange={v => setAdminCreds(p => ({ ...p, password: v }))} type="password" placeholder="••••••••" />
-          </Section>
+            {/* Imágenes generales */}
+            <Section title="Imágenes del evento" icon="🖼️" onSave={saveImages} saving={saving.images} forceClose={closedAt.images}>
+              <ImageField label="Foto / Flyer general del evento" value={images.event_image} onChange={v => setImages(p => ({ ...p, event_image: v }))} />
+              <ImageField label="Logo de la sala" value={images.cycling_room_logo} onChange={v => setImages(p => ({ ...p, cycling_room_logo: v }))} />
+            </Section>
 
-          {/* Tema */}
-          <Section title="Colores / Tema" icon="🎨" onSave={saveTheme} saving={saving.theme} saveLabel={saveBtn('theme')}>
-            {[
-              { label: 'Color primario', key: 'primaryColor' },
-              { label: 'Color secundario', key: 'secondaryColor' },
-              { label: 'Color de fondo', key: 'backgroundColor' }
-            ].map(({ label, key }) => (
-              <div key={key} style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <input type="color" value={theme[key]} onChange={e => setTheme(p => ({ ...p, [key]: e.target.value }))}
-                  style={{ width: '40px', height: '40px', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'transparent' }} />
-                <div>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#e2e8f0', fontFamily: font, fontWeight: '600' }}>{theme[key]}</p>
+            {/* Sesiones — precio, hora, instructores y flyer por sesión */}
+            <Section title="Sesiones (precio, hora, flyer, instructores)" icon="🚴" onSave={saveSessions} saving={saving.sessions} forceClose={closedAt.sessions}>
+              <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#f59e0b', fontFamily: font }}>
+                ⚠️ El número de bicis no se puede modificar si hay reservas activas.
+              </p>
+              {sessions.map((s, i) => (
+                <div key={s.id} style={{ marginBottom: '18px', padding: '14px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p style={{ margin: '0 0 12px', fontSize: '12px', fontWeight: '800', color: primaryColor, fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {s.event_name || `Sesión ${i + 1}`}
+                  </p>
+
+                  <Field label="Nombre de la sesión" value={s.event_name}
+                    onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, event_name: v } : x))} />
+                  <Field label="Hora (HH:MM)" value={s.time}
+                    onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, time: v } : x))}
+                    placeholder="18:00" />
+                  <Field label="Precio (USD)" value={s.price}
+                    onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, price: v } : x))}
+                    placeholder="25.00" />
+
+                  {/* Flyer de la sesión */}
+                  <ImageField
+                    label="Flyer de esta sesión"
+                    value={s.image}
+                    onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, image: v } : x))}
+                  />
+
+                  {/* Instructores */}
+                  {(s.instructors || []).map((inst, k) => (
+                    <Field key={k}
+                      label={`Instructor ${k + 1}${inst.rank ? ` (${inst.rank})` : ''}`}
+                      value={inst.name}
+                      onChange={v => setSessions(p => p.map((x, j) => j === i
+                        ? { ...x, instructors: x.instructors.map((ins, l) => l === k ? { ...ins, name: v } : ins) }
+                        : x))}
+                    />
+                  ))}
                 </div>
-              </div>
-            ))}
-          </Section>
+              ))}
+            </Section>
+
+            {/* Admin */}
+            <Section title="Usuario Admin" icon="🔑" onSave={saveAdmin} saving={saving.admin} forceClose={closedAt.admin}>
+              <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#64748b', fontFamily: font }}>
+                Deja en blanco si no quieres cambiar las credenciales.
+              </p>
+              <Field label="Nuevo usuario" value={adminCreds.username}
+                onChange={v => setAdminCreds(p => ({ ...p, username: v }))} placeholder="admin123" />
+              <Field label="Nueva contraseña" value={adminCreds.password}
+                onChange={v => setAdminCreds(p => ({ ...p, password: v }))} type="password" placeholder="••••••••" />
+            </Section>
+
+            {/* Tema */}
+            <Section title="Colores / Tema" icon="🎨" onSave={saveTheme} saving={saving.theme} forceClose={closedAt.theme}>
+              {[
+                { label: 'Color primario', key: 'primaryColor' },
+                { label: 'Color secundario', key: 'secondaryColor' },
+                { label: 'Color de fondo', key: 'backgroundColor' }
+              ].map(({ label, key }) => (
+                <div key={key} style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input type="color" value={theme[key]}
+                    onChange={e => setTheme(p => ({ ...p, [key]: e.target.value }))}
+                    style={{ width: '40px', height: '40px', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'transparent' }} />
+                  <div>
+                    <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontFamily: font, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#e2e8f0', fontFamily: font, fontWeight: '600' }}>{theme[key]}</p>
+                  </div>
+                </div>
+              ))}
+            </Section>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
