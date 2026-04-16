@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { supabase } from './lib/supabase';
 import { superAdminAuth } from './lib/auth';
 import EventCreationForm from './EventCreationForm';
+import EventQuickEdit from './EventQuickEdit';
 import { EventConfigContext } from './lib/EventConfigProvider';
 
 const getEventUrl = (slug) => `${window.location.origin}/evento/${slug}`;
@@ -11,6 +12,7 @@ function SuperAdminPanel({ onLogout }) {
     const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
+    const [quickEditEvent, setQuickEditEvent] = useState(null);
     const [deletingEventId, setDeletingEventId] = useState(null);
     const [copiedSlug, setCopiedSlug] = useState(null);
     const session = superAdminAuth.getSession();
@@ -511,6 +513,25 @@ function SuperAdminPanel({ onLogout }) {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            setQuickEditEvent(event);
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            background: 'rgba(34,197,94,0.1)',
+                                            border: '1px solid rgba(34,197,94,0.3)',
+                                            borderRadius: '6px',
+                                            padding: '5px',
+                                            color: '#22c55e',
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}>
+                                        ⚡ Edición rápida
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             handleEditEvent(event);
                                         }}
                                         style={{
@@ -525,7 +546,7 @@ function SuperAdminPanel({ onLogout }) {
                                             cursor: 'pointer',
                                             transition: 'all 0.2s'
                                         }}>
-                                        ✏️ Editar
+                                        ✏️ Completo
                                     </button>
                                     <button
                                         onClick={(e) => {
@@ -567,6 +588,18 @@ function SuperAdminPanel({ onLogout }) {
                         setEditingEvent(null);
                         fetchEvents(); // Refresh the events list
                         reloadConfig(); // Refresh app-wide config (colors, seats, etc.)
+                    }}
+                />
+            )}
+
+            {/* Quick Edit Modal */}
+            {quickEditEvent && (
+                <EventQuickEdit
+                    event={quickEditEvent}
+                    onClose={() => setQuickEditEvent(null)}
+                    onSaved={() => {
+                        fetchEvents();
+                        reloadConfig();
                     }}
                 />
             )}
