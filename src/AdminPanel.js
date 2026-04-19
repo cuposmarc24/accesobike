@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import BikeLoader from './BikeLoader';
 import { supabase } from './lib/supabase';
 import { useEventConfig } from './lib/EventConfigProvider';
 import { sendAdminWhatsAppMessage, sendVIPAssignmentWhatsApp } from './whatsappService';
@@ -562,11 +563,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
 
   // ── LOADING ──
   if (loading) {
-    return (
-      <div style={{ background: backgroundColor, minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white' }}>
-        Cargando...
-      </div>
-    );
+    return <BikeLoader bg={backgroundColor} color={primaryColor} />;
   }
 
   // ── CONTENIDO POR SECCIÓN ──

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
+import BikeLoader from '../BikeLoader';
 
 // Crear contexto para la configuración del evento
 export const EventConfigContext = createContext();
@@ -67,6 +68,11 @@ export const EventConfigProvider = ({ children, eventSlug }) => {
             setEventData(data);
             setConfig(data.config);
 
+            // Persistir colores para evitar parpadeo en la próxima carga
+            const theme = data.config?.theme || {};
+            if (theme.backgroundColor) localStorage.setItem('ab_bg', theme.backgroundColor);
+            if (theme.primaryColor) localStorage.setItem('ab_primary', theme.primaryColor);
+
             console.log('✅ Evento cargado:', data.event_name);
             console.log('📋 Configuración:', data.config);
 
@@ -110,74 +116,9 @@ export const EventConfigProvider = ({ children, eventSlug }) => {
     };
 
     if (loading) {
-        return (
-            <div style={{
-                background: '#111f22',
-                minHeight: '100vh',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-            }}>
-                <div style={{ width: '60px', height: '60px' }}>
-                    <svg fill="#13c8ec" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="1" y="1" width="7.33" height="7.33">
-                            <animate id="spinner_oJFS" begin="0;spinner_5T1J.end+0.2s" attributeName="x" dur="0.6s" values="1;4;1" />
-                            <animate begin="0;spinner_5T1J.end+0.2s" attributeName="y" dur="0.6s" values="1;4;1" />
-                            <animate begin="0;spinner_5T1J.end+0.2s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="0;spinner_5T1J.end+0.2s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="8.33" y="1" width="7.33" height="7.33">
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="x" dur="0.6s" values="8.33;11.33;8.33" />
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="y" dur="0.6s" values="1;4;1" />
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="1" y="8.33" width="7.33" height="7.33">
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="x" dur="0.6s" values="1;4;1" />
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="y" dur="0.6s" values="8.33;11.33;8.33" />
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.1s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="15.66" y="1" width="7.33" height="7.33">
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="x" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="y" dur="0.6s" values="1;4;1" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="8.33" y="8.33" width="7.33" height="7.33">
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="x" dur="0.6s" values="8.33;11.33;8.33" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="y" dur="0.6s" values="8.33;11.33;8.33" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="1" y="15.66" width="7.33" height="7.33">
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="x" dur="0.6s" values="1;4;1" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="y" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.2s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="15.66" y="8.33" width="7.33" height="7.33">
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="x" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="y" dur="0.6s" values="8.33;11.33;8.33" />
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="8.33" y="15.66" width="7.33" height="7.33">
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="x" dur="0.6s" values="8.33;11.33;8.33" />
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="y" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.3s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="15.66" y="15.66" width="7.33" height="7.33">
-                            <animate id="spinner_5T1J" begin="spinner_oJFS.begin+0.4s" attributeName="x" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="spinner_oJFS.begin+0.4s" attributeName="y" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="spinner_oJFS.begin+0.4s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="spinner_oJFS.begin+0.4s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                    </svg>
-                </div>
-            </div>
-        );
+        const cachedBg = localStorage.getItem('ab_bg') || '#111f22';
+        const cachedColor = localStorage.getItem('ab_primary') || '#13c8ec';
+        return <BikeLoader bg={cachedBg} color={cachedColor} />;
     }
 
     if (error) {
