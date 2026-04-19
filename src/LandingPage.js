@@ -4,6 +4,7 @@ import Footer from './Footer';
 import SuperAdminLogin from './SuperAdminLogin';
 import SuperAdminPanel from './SuperAdminPanel';
 import { superAdminAuth } from './lib/auth';
+import BikeLoader from './BikeLoader';
 
 function LandingPage() {
     const [events, setEvents] = useState([]);
@@ -84,26 +85,9 @@ function LandingPage() {
     }
 
     if (loadingEvents) {
-        return (
-            <div style={{ background: '#111f22', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{ width: '50px', height: '50px' }}>
-                    <svg fill="#13c8ec" viewBox="0 0 24 24">
-                        <rect x="1" y="1" width="7.33" height="7.33">
-                            <animate id="s1" begin="0;s9.end+0.2s" attributeName="x" dur="0.6s" values="1;4;1" />
-                            <animate begin="0;s9.end+0.2s" attributeName="y" dur="0.6s" values="1;4;1" />
-                            <animate begin="0;s9.end+0.2s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="0;s9.end+0.2s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                        <rect x="15.66" y="15.66" width="7.33" height="7.33">
-                            <animate id="s9" begin="s1.begin+0.4s" attributeName="x" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="s1.begin+0.4s" attributeName="y" dur="0.6s" values="15.66;18.66;15.66" />
-                            <animate begin="s1.begin+0.4s" attributeName="width" dur="0.6s" values="7.33;1.33;7.33" />
-                            <animate begin="s1.begin+0.4s" attributeName="height" dur="0.6s" values="7.33;1.33;7.33" />
-                        </rect>
-                    </svg>
-                </div>
-            </div>
-        );
+        const cachedBg = localStorage.getItem('ab_bg') || '#111f22';
+        const cachedColor = localStorage.getItem('ab_primary') || '#13c8ec';
+        return <BikeLoader bg={cachedBg} color={cachedColor} />;
     }
 
     return (
