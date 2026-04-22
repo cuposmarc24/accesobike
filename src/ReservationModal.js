@@ -114,12 +114,22 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
     }
   };
 
+  // Formatea dígitos crudos al estilo venezolano: 15200 -> "152,00"
+  const formatMontoVE = (digits) => {
+    if (!digits) return '';
+    const num = parseInt(digits, 10);
+    if (isNaN(num)) return '';
+    const int = Math.floor(num / 100);
+    const dec = String(num % 100).padStart(2, '0');
+    return `${int.toLocaleString('es-VE')},${dec}`;
+  };
+
   const handlePaymentInput = (e) => {
     const { name, value } = e.target;
     if (name === 'monto') {
-      // Numérico con punto decimal (ej: 25.50)
-      const clean = value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-      setPaymentData(p => ({ ...p, monto: clean }));
+      // Guardar solo dígitos; el display se formatea al vuelo
+      const digits = value.replace(/\D/g, '').replace(/^0+/, '') || '';
+      setPaymentData(p => ({ ...p, monto: digits }));
     } else if (name === 'referencia') {
       // Solo dígitos
       setPaymentData(p => ({ ...p, referencia: value.replace(/\D/g, '') }));
@@ -177,7 +187,8 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
       alert('Este método de pago requiere número de referencia');
       return;
     }
-    onConfirm({ ...formData, paymentMethod: selectedMethod, paymentData, captureFile });
+    const montoDecimal = paymentData.monto ? (parseInt(paymentData.monto, 10) / 100).toFixed(2) : '0.00';
+    onConfirm({ ...formData, paymentMethod: selectedMethod, paymentData: { ...paymentData, monto: montoDecimal }, captureFile });
     resetAll();
   };
 
@@ -403,10 +414,16 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
                       }}>
                         {currencySymbol(selectedMethod?.currency)}
                       </div>
+                      <style>{`
+                        .ab-monto-input::placeholder { color: #475569; font-weight: 400; }
+                      `}</style>
                       <input
-                        type="text" inputMode="numeric" pattern="[0-9]*"
-                        name="monto" value={paymentData.monto} onChange={handlePaymentInput}
-                        placeholder={expectedAmount() ? expectedAmount().replace(/[^0-9.]/g, '') : '0'}
+                        className="ab-monto-input"
+                        type="text" inputMode="numeric"
+                        name="monto"
+                        value={formatMontoVE(paymentData.monto)}
+                        onChange={handlePaymentInput}
+                        placeholder="0,00"
                         style={{
                           width: '100%', padding: '11px 12px 11px 36px', borderRadius: '10px', boxSizing: 'border-box',
                           border: `1.5px solid rgba(255,255,255,0.08)`, background: 'rgba(255,255,255,0.03)',
