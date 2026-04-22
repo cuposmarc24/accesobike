@@ -183,6 +183,20 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
       alert('Por favor ingresa el monto del pago');
       return;
     }
+    if (selectedMethod && paymentData.monto) {
+      const expected = expectedAmount();
+      if (expected) {
+        const expectedNum = parseFloat(expected.replace(/[^0-9.]/g, ''));
+        const enteredNum = parseInt(paymentData.monto, 10) / 100;
+        const minAccepted = Math.floor(expectedNum);
+        const maxAccepted = Math.ceil(expectedNum);
+        if (enteredNum < minAccepted || enteredNum > maxAccepted) {
+          const fmt = (n) => n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('.', ',');
+          alert(`El monto ingresado no es válido.\nSe esperaba entre ${fmt(minAccepted)} y ${fmt(maxAccepted)}.`);
+          return;
+        }
+      }
+    }
     if (selectedMethod?.requires_reference && !paymentData.referencia) {
       alert('Este método de pago requiere número de referencia');
       return;
