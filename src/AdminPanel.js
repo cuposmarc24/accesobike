@@ -16,6 +16,14 @@ import {
   notifyNewReservation
 } from './lib/pushNotifications';
 
+const formatMontoVE = (value) => {
+  if (!value) return '';
+  const num = parseFloat(value);
+  if (isNaN(num)) return value;
+  const [int, dec = '00'] = num.toFixed(2).split('.');
+  return `${parseInt(int, 10).toLocaleString('es-VE')},${dec}`;
+};
+
 function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventData: propEventData }) {
   const { eventId: contextEventId, config: contextConfig, eventData: contextEventData } = useEventConfig();
 
@@ -397,7 +405,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
                   {reservation.payment_monto && (
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '12px', color: '#64748b' }}>Monto</span>
-                      <span style={{ fontSize: '13px', color: primaryColor, fontWeight: '800' }}>{reservation.payment_monto}</span>
+                      <span style={{ fontSize: '13px', color: primaryColor, fontWeight: '800' }}>{formatMontoVE(reservation.payment_monto)}</span>
                     </div>
                   )}
                   {reservation.payment_fecha && (
