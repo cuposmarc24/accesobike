@@ -191,8 +191,7 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
         const minAccepted = Math.floor(expectedNum);
         const maxAccepted = Math.ceil(expectedNum);
         if (enteredNum < minAccepted || enteredNum > maxAccepted) {
-          const fmt = (n) => n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace('.', ',');
-          alert(`El monto ingresado no es válido.\nSe esperaba entre ${fmt(minAccepted)} y ${fmt(maxAccepted)}.`);
+          alert(`El monto ingresado no es válido.\nDebe estar entre ${minAccepted.toFixed(2).replace('.', ',')} y ${maxAccepted.toFixed(2).replace('.', ',')}.`);
           return;
         }
       }
