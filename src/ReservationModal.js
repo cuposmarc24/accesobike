@@ -52,6 +52,26 @@ const Field = ({ label, icon: Icon, placeholder, type = 'text', name, value, onC
   );
 };
 
+/* ─── Alert personalizado ─── */
+const ModalAlert = ({ msg, onClose, primaryColor, backgroundColor }) => {
+  if (!msg) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '24px' }}>
+      <div style={{ background: backgroundColor, borderRadius: '20px', padding: '32px 24px', maxWidth: '320px', width: '100%', border: `1.5px solid ${primaryColor}40`, boxShadow: `0 24px 60px rgba(0,0,0,0.7)`, textAlign: 'center', fontFamily: font }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#ef444420', border: '1.5px solid #ef444450', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </div>
+        <p style={{ color: '#e2e8f0', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px', fontFamily: font, whiteSpace: 'pre-line' }}>{msg}</p>
+        <button onClick={onClose} style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: backgroundColor, border: 'none', borderRadius: '12px', padding: '12px 32px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: font, width: '100%' }}>
+          Entendido
+        </button>
+      </div>
+    </div>
+  );
+};
+
 /* ─── Componente Principal ─── */
 function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryColor = '#13c8ec', secondaryColor = '#1a2c30', backgroundColor = '#111f22', eventId, sessionId }) {
   const [formData, setFormData] = useState({ cedula: '', nombre: '', apellido: '', telefono: '' });
@@ -61,7 +81,10 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
   const [paymentData, setPaymentData] = useState({ monto: '', fecha: new Date().toISOString().split('T')[0], referencia: '' });
   const [captureFile, setCaptureFile] = useState(null);
   const [capturePreview, setCapturePreview] = useState(null);
+  const [alertMsg, setAlertMsg] = useState('');
   const fileRef = useRef();
+
+  const showAlert = (msg) => setAlertMsg(msg);
 
   useEffect(() => {
     if (!eventId) return;
@@ -172,15 +195,15 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
 
   const handleReserve = () => {
     if (!formData.cedula || !formData.nombre || !formData.apellido || !formData.telefono) {
-      alert('Por favor completa todos los campos del formulario');
+      showAlert('Por favor completa todos los campos del formulario.');
       return;
     }
     if (formData.telefono.length < 10) {
-      alert('El número de teléfono debe tener al menos 10 dígitos');
+      showAlert('El número de teléfono debe tener al menos 10 dígitos.');
       return;
     }
     if (selectedMethod && !paymentData.monto) {
-      alert('Por favor ingresa el monto del pago');
+      showAlert('Por favor ingresa el monto del pago.');
       return;
     }
     if (selectedMethod && paymentData.monto) {
@@ -191,13 +214,13 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
         const minAccepted = Math.floor(expectedNum);
         const maxAccepted = Math.ceil(expectedNum);
         if (enteredNum < minAccepted || enteredNum > maxAccepted) {
-          alert(`El monto ingresado no es válido.\nDebe estar entre ${minAccepted.toFixed(2).replace('.', ',')} y ${maxAccepted.toFixed(2).replace('.', ',')}.`);
+          showAlert(`El monto ingresado no es válido.\nDebe estar entre ${minAccepted.toFixed(2).replace('.', ',')} y ${maxAccepted.toFixed(2).replace('.', ',')}.`);
           return;
         }
       }
     }
     if (selectedMethod?.requires_reference && !paymentData.referencia) {
-      alert('Este método de pago requiere número de referencia');
+      showAlert('Este método de pago requiere número de referencia.');
       return;
     }
     const montoDecimal = paymentData.monto ? (parseInt(paymentData.monto, 10) / 100).toFixed(2) : '0.00';
@@ -227,6 +250,8 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
     : null;
 
   return (
+    <>
+    <ModalAlert msg={alertMsg} onClose={() => setAlertMsg('')} primaryColor={primaryColor} backgroundColor={backgroundColor} />
     <div style={{
       position: 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.75)',
@@ -551,6 +576,7 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
         </div>
       </div>
     </div>
+    </>
   );
 }
 
