@@ -171,20 +171,27 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
                                         </div>
                                     </div>
 
-                                    {session.price && (
-                                        <div style={{
-                                            background: 'rgba(34, 197, 94, 0.15)',
-                                            color: '#4ade80',
-                                            padding: '4px 8px',
-                                            borderRadius: '6px',
-                                            fontSize: '13px',
-                                            fontWeight: '700',
-                                            whiteSpace: 'nowrap',
-                                            border: '1px solid rgba(34, 197, 94, 0.2)'
-                                        }}>
-                                            {session.price}
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        const validRowPrices = (session.rowPrices || []).map(p => parseFloat(p)).filter(p => !isNaN(p) && p > 0);
+                                        const hasRowPrices = validRowPrices.length > 0;
+                                        const minPrice = hasRowPrices ? Math.min(...validRowPrices) : null;
+                                        const showPrice = hasRowPrices || session.price;
+                                        if (!showPrice) return null;
+                                        return (
+                                            <div style={{
+                                                background: 'rgba(34, 197, 94, 0.15)',
+                                                color: '#4ade80',
+                                                padding: '4px 8px',
+                                                borderRadius: '6px',
+                                                fontSize: '13px',
+                                                fontWeight: '700',
+                                                whiteSpace: 'nowrap',
+                                                border: '1px solid rgba(34, 197, 94, 0.2)'
+                                            }}>
+                                                {hasRowPrices ? `Desde $${minPrice}` : session.price}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 {/* Instructors List - Requested Format */}

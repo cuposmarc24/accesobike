@@ -77,7 +77,11 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         // Notificación push solo en INSERT
         if (payload.eventType === 'INSERT' && getNotificationStatus() === 'granted') {
           const session = config?.sessions?.find(s => s.id === row.session_id);
-          notifyNewReservation(row.customer_name, row.seat_id, session?.event_name || '');
+          // Buscar el seat_number real desde Supabase (el payload Realtime no incluye JOINs)
+          supabase.from('seats').select('seat_number').eq('id', row.seat_id).single()
+            .then(({ data: seatData }) => {
+              notifyNewReservation(row.customer_name, seatData?.seat_number ?? '?', session?.event_name || '');
+            });
         }
       })
       .subscribe((status) => {
@@ -88,8 +92,25 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
   }, [eventId]);
 
   const handleEnableNotifications = async () => {
+    if (Notification.permission === 'denied') {
+      showAlert('warning', 'Notificaciones bloqueadas',
+        'Debes habilitarlas manualmente desde el navegador:\n\n1. Toca el ícono 🔒 o ⚙️ en la barra de direcciones\n2. Busca "Notificaciones"\n3. Cambia a "Permitir"\n4. Recarga la página'
+      );
+      return;
+    }
     const granted = await requestNotificationPermission();
     setNotifStatus(granted ? 'granted' : Notification.permission);
+  };
+
+  const formatDateTime = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('es-VE');
+    const hours = d.getHours();
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const h12 = hours % 12 || 12;
+    return `${date} · ${h12}:${mins} ${ampm}`;
   };
 
   const formatTime = (time) => {
@@ -383,7 +404,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
               <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '800', color: '#e2e8f0' }}>{reservation.customer_name}</h3>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
                 <Tag label={`Bici #${reservation.seats?.seat_number}`} color={primaryColor} />
-                <Tag label={new Date(reservation.created_at).toLocaleDateString('es-VE')} color="#64748b" />
+                <Tag label={formatDateTime(reservation.created_at)} color="#64748b" />
                 <Tag label={isPending ? 'PENDIENTE' : 'CONFIRMADO'} color={isPending ? '#f97316' : '#22c55e'} />
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -438,7 +459,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
             )}
 
             {/* Acciones */}
-            {isPending && (
+            {isPending ? (
               <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
                 <button
                   onClick={() => { confirmReservation(reservation); handleClose(); }}
@@ -466,6 +487,20 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
                   <MdClose size={18} /> Cancelar
                 </button>
               </div>
+            ) : (
+              <button
+                onClick={() => { enableOccupied(reservation); handleClose(); }}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: '12px', marginTop: '8px',
+                  border: '1px solid rgba(249,115,22,0.35)',
+                  background: 'rgba(249,115,22,0.1)',
+                  color: '#f97316', fontSize: '14px', fontWeight: '800',
+                  cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                }}
+              >
+                <MdLockOpen size={18} /> Habilitar asiento
+              </button>
             )}
           </div>
         </div>
@@ -507,7 +542,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
           {reservation.customer_name}
         </p>
         <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
-          {reservation.customer_phone} · {new Date(reservation.created_at).toLocaleDateString('es-VE')}
+          {reservation.customer_phone} · {formatDateTime(reservation.created_at)}
         </p>
       </div>
       {/* Flecha */}
@@ -515,59 +550,70 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
     </div>
   );
 
-  const reservationCard = (reservation, isPending) => (
+  const occupiedRow = (reservation) => (
+    <div
+      key={reservation.id}
+      onClick={() => setSelectedReservation(reservation)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '12px',
+        padding: '11px 14px', borderRadius: '12px',
+        border: '1px solid rgba(239,68,68,0.15)',
+        background: 'rgba(239,68,68,0.03)',
+        cursor: 'pointer', transition: 'all 0.15s',
+        marginBottom: '8px'
+      }}
+      onMouseOver={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'; }}
+      onMouseOut={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.03)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.15)'; }}
+    >
+      {/* Badge bici */}
+      <div style={{
+        width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
+        background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+      }}>
+        <span style={{ fontSize: '7px', color: '#ef4444', fontWeight: '700', letterSpacing: '0.05em' }}>BICI</span>
+        <span style={{ fontSize: '14px', color: '#ef4444', fontWeight: '900', lineHeight: 1 }}>#{reservation.seats?.seat_number}</span>
+      </div>
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {reservation.customer_name}
+        </p>
+        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
+          {reservation.customer_phone} · {formatDateTime(reservation.created_at)}
+        </p>
+      </div>
+      {/* Flecha */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  );
+
+  const reservationCard = (reservation, isPending) => isPending ? (
     <div key={reservation.id} style={{
-      background: isPending ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.04)',
-      borderRadius: '14px',
-      padding: '14px',
-      border: isPending
-        ? `1px solid ${primaryColor}20`
-        : '1px solid rgba(239,68,68,0.2)'
+      background: 'rgba(255,255,255,0.03)', borderRadius: '14px', padding: '14px',
+      border: `1px solid ${primaryColor}20`
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
         <div>
-          <h3 style={{ color: 'white', fontSize: '14px', fontWeight: '700', margin: '0 0 4px 0' }}>
-            {reservation.customer_name}
-          </h3>
+          <h3 style={{ color: 'white', fontSize: '14px', fontWeight: '700', margin: '0 0 4px 0' }}>{reservation.customer_name}</h3>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <Tag label={`Bici #${reservation.seats?.seat_number}`} color={primaryColor} />
-            <Tag label={new Date(reservation.created_at).toLocaleDateString('es-VE')} color="#64748b" />
+            <Tag label={formatDateTime(reservation.created_at)} color="#64748b" />
           </div>
         </div>
-        <div style={{
-          background: isPending ? `${primaryColor}15` : 'rgba(239,68,68,0.15)',
-          border: isPending ? `1px solid ${primaryColor}30` : '1px solid rgba(239,68,68,0.3)',
-          borderRadius: '8px',
-          padding: '4px 8px',
-          fontSize: '11px',
-          fontWeight: '700',
-          color: isPending ? primaryColor : '#ef4444'
-        }}>
-          {isPending ? 'PENDIENTE' : 'OCUPADO'}
-        </div>
+        <div style={{ background: `${primaryColor}15`, border: `1px solid ${primaryColor}30`, borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: '700', color: primaryColor }}>PENDIENTE</div>
       </div>
-
       <div style={{ display: 'flex', gap: '6px', fontSize: '12px', color: '#64748b', marginBottom: '10px', flexWrap: 'wrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MdPhone size={12} /> {reservation.customer_phone}</span>
         <span>•</span>
-        <span>{(() => {
-          const hasOldFormat = reservation.session_id === eventId;
-          return hasOldFormat
-            ? (config?.sessions?.[0] ? `${config.sessions[0].event_name} - ${formatTime(config.sessions[0].time)}` : 'Sesión única')
-            : getSessionName(reservation.session_id);
-        })()}</span>
+        <span>{(() => { const hasOldFormat = reservation.session_id === eventId; return hasOldFormat ? (config?.sessions?.[0] ? `${config.sessions[0].event_name} - ${formatTime(config.sessions[0].time)}` : 'Sesión única') : getSessionName(reservation.session_id); })()}</span>
       </div>
-
-      {isPending ? (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <ActionButton label="Confirmar" icon={MdCheck} color="#22c55e" onClick={() => confirmReservation(reservation)} />
-          <ActionButton label="Cancelar" icon={MdClose} color="#ef4444" onClick={() => cancelReservation(reservation)} />
-        </div>
-      ) : (
-        <ActionButton label="Habilitar asiento" icon={MdLockOpen} color="#f97316" onClick={() => enableOccupied(reservation)} fullWidth />
-      )}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <ActionButton label="Confirmar" icon={MdCheck} color="#22c55e" onClick={() => confirmReservation(reservation)} />
+        <ActionButton label="Cancelar" icon={MdClose} color="#ef4444" onClick={() => cancelReservation(reservation)} />
+      </div>
     </div>
-  );
+  ) : occupiedRow(reservation);
 
   // ── LOADING ──
   if (loading) {
@@ -685,8 +731,8 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
               {filteredOccupied.length === 0 ? (
                 <EmptyState icon={MdCheckCircleOutline} text="No hay asientos ocupados en esta sesión" />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {filteredOccupied.map(r => reservationCard(r, false))}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {filteredOccupied.map(r => occupiedRow(r))}
                 </div>
               )}
             </div>

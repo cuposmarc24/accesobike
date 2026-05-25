@@ -156,7 +156,24 @@ function SeatMap({ rodada, onBack, session }) {
 
   const primaryColor = config?.theme?.primaryColor || '#13c8ec';
   const secondaryColor = config?.theme?.secondaryColor || '#1a2c30';
-  const backgroundColor = config?.theme?.backgroundColor || '#111f22'; // Use config background or default
+  const backgroundColor = config?.theme?.backgroundColor || '#111f22';
+
+  // Precio y nota por fila según row_number de la bici seleccionada
+  const getRowData = (seat) => {
+    if (!seat) return { price: null, note: null };
+    const rowIndex = (seat.row_number || 1) - 1;
+    const rowPrices = currentSession?.rowPrices || [];
+    const rowNotes = currentSession?.rowNotes || [];
+    const rp = rowPrices[rowIndex];
+    const rn = rowNotes[rowIndex];
+    return {
+      price: rp !== '' && rp != null ? String(rp) : null,
+      note: rn || null
+    };
+  };
+
+  const { price: rowPrice, note: rowNote } = getRowData(selectedSeat);
+  const selectedSeatPrice = rowPrice || (currentSession?.price || null);
 
   // Helper para renderizar iconos de bici en la grilla
   const renderSeat = (seat) => {
@@ -244,7 +261,7 @@ function SeatMap({ rodada, onBack, session }) {
       fontFamily: 'Inter, sans-serif',
       color: '#fff',
       position: 'relative',
-      paddingBottom: selectedSeat ? '180px' : '40px', // Aumentar drásticamente si hay selección
+      paddingBottom: selectedSeat ? '280px' : '40px',
       boxSizing: 'border-box'
     }}>
       {/* 1. Header */}
@@ -310,6 +327,38 @@ function SeatMap({ rodada, onBack, session }) {
           />
         </div>
       </div>
+
+      {/* Aviso de precios por fila — solo si hay rowPrices configurados */}
+      {(() => {
+        const validRowPrices = (currentSession?.rowPrices || []).map(p => parseFloat(p)).filter(p => !isNaN(p) && p > 0);
+        if (validRowPrices.length === 0) return null;
+        const minPrice = Math.min(...validRowPrices);
+        const maxPrice = Math.max(...validRowPrices);
+        const hasRange = minPrice !== maxPrice;
+        return (
+          <div style={{ margin: '14px 20px 0', display: 'flex', justifyContent: 'center' }}>
+          <div style={{
+            padding: '7px 14px',
+            borderRadius: '20px',
+            background: `${primaryColor}12`,
+            border: `1px solid ${primaryColor}25`,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px'
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'Inter, sans-serif' }}>
+              Precio varía por fila:
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: '800', color: primaryColor, fontFamily: 'Inter, sans-serif' }}>
+              {hasRange ? `$${minPrice} – $${maxPrice}` : `$${minPrice}`}
+            </span>
+          </div>
+          </div>
+        );
+      })()}
 
       {/* 2. Legend */}
       <div style={{
@@ -439,49 +488,114 @@ function SeatMap({ rodada, onBack, session }) {
         <div style={{
           position: 'fixed',
           bottom: '20px',
-          left: '20px',
-          right: '20px',
-          maxWidth: '360px',
+          left: '16px',
+          right: '16px',
+          maxWidth: '380px',
           margin: '0 auto',
-          background: backgroundColor,                          // fondo oscuro del config
-          backdropFilter: 'blur(16px)',
-          border: `1.5px solid ${primaryColor}40`,             // borde con el color config
-          borderRadius: '20px',
-          padding: '16px',
-          boxShadow: `0 -8px 40px rgba(0,0,0,0.7), 0 0 0 1px ${primaryColor}10`,
+          background: backgroundColor,
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${primaryColor}30`,
+          borderRadius: '24px',
+          padding: '20px',
+          boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px ${primaryColor}15, 0 -4px 24px ${primaryColor}10`,
           zIndex: 1000,
-          animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          animation: 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
-          <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+          <style>{`@keyframes slideUp { from { transform: translateY(110%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{
-                width: '44px', height: '44px', borderRadius: '11px',
-                background: `${primaryColor}15`,
-                border: `1px solid ${primaryColor}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: primaryColor
-              }}>
-                <MdOutlineDirectionsBike size={22} />
+          {/* Fila superior: info bici + botón X */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            {/* Ícono */}
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '14px',
+              background: `${primaryColor}18`,
+              border: `1.5px solid ${primaryColor}35`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: primaryColor,
+              flexShrink: 0
+            }}>
+              <MdOutlineDirectionsBike size={24} />
+            </div>
+
+            {/* Nombre y sesión */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '17px', fontWeight: '800', color: '#f1f5f9', fontFamily: "'Inter', sans-serif", lineHeight: 1.2 }}>
+                Bici #{selectedSeat.seat_number < 10 ? `0${selectedSeat.seat_number}` : selectedSeat.seat_number}
               </div>
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', margin: '0 0 2px 0', color: '#e2e8f0', fontFamily: "'Inter', sans-serif" }}>
-                  Bici #{selectedSeat.seat_number}
-                </h3>
-                <p style={{ fontSize: '12px', color: '#64748b', margin: 0, fontFamily: "'Inter', sans-serif" }}>
-                  {currentSession ? currentSession.event_name : 'Clase de Spinning'}
-                </p>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', fontFamily: "'Inter', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentSession ? currentSession.event_name : 'Clase de Spinning'}
               </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', color: '#475569', marginBottom: '2px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>Precio</div>
-              <div style={{ fontSize: '16px', fontWeight: '900', color: primaryColor, fontFamily: "'Inter', sans-serif" }}>
-                {currentSession && currentSession.price ? currentSession.price : 'Consultar'}
-              </div>
-            </div>
+
+            {/* Botón cerrar */}
+            <button
+              onClick={() => setSelectedSeat(null)}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '50%',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                padding: 0,
+                flexShrink: 0,
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = '#fff'; }}
+              onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#94a3b8'; }}
+              title="Cancelar selección"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
 
+          {/* Divider con precio */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: `${primaryColor}0d`,
+            border: `1px solid ${primaryColor}20`,
+            borderRadius: '12px',
+            padding: '10px 14px',
+            marginBottom: rowNote ? '10px' : '14px'
+          }}>
+            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Inter', sans-serif" }}>
+              Precio
+            </span>
+            <span style={{ fontSize: '18px', fontWeight: '900', color: primaryColor, fontFamily: "'Inter', sans-serif" }}>
+              {selectedSeatPrice ? `$${selectedSeatPrice}` : 'Consultar'}
+            </span>
+          </div>
+
+          {/* Nota de fila */}
+          {rowNote && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '10px',
+              padding: '9px 12px',
+              marginBottom: '14px'
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>
+                {rowNote}
+              </span>
+            </div>
+          )}
+
+          {/* Botón reservar */}
           <button
             onClick={() => setShowModal(true)}
             style={{
@@ -489,13 +603,14 @@ function SeatMap({ rodada, onBack, session }) {
               background: 'transparent',
               color: primaryColor,
               border: `1.5px solid ${primaryColor}`,
-              borderRadius: '12px',
-              padding: '13px',
+              borderRadius: '14px',
+              padding: '14px',
               fontSize: '14px',
               fontWeight: '800',
               cursor: 'pointer',
               fontFamily: "'Inter', sans-serif",
-              letterSpacing: '0.02em'
+              letterSpacing: '0.03em',
+              transition: 'background 0.2s'
             }}
             onMouseOver={e => { e.currentTarget.style.background = `${primaryColor}15`; }}
             onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -511,6 +626,7 @@ function SeatMap({ rodada, onBack, session }) {
           seat={selectedSeat}
           rodada={rodada}
           session={currentSession}
+          seatPrice={selectedSeatPrice}
           onClose={() => setShowModal(false)}
           onConfirm={handleReservation}
           primaryColor={primaryColor}

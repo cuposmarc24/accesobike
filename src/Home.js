@@ -44,7 +44,17 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin, eventSlug }) {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setEvents(data || []);
+
+            const now = new Date();
+            const toDeactivate = (data || []).filter(e =>
+                e.auto_deactivate && e.expiration_date && new Date(e.expiration_date) < now
+            );
+            if (toDeactivate.length > 0) {
+                await Promise.all(toDeactivate.map(e =>
+                    supabase.from('events').update({ is_active: false }).eq('id', e.id)
+                ));
+            }
+            setEvents((data || []).filter(e => !toDeactivate.some(d => d.id === e.id)));
         } catch (error) {
             console.error('Error fetching events:', error);
         } finally {

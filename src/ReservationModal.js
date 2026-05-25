@@ -73,7 +73,7 @@ const ModalAlert = ({ msg, onClose, primaryColor, backgroundColor }) => {
 };
 
 /* ─── Componente Principal ─── */
-function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryColor = '#13c8ec', secondaryColor = '#1a2c30', backgroundColor = '#111f22', eventId, sessionId }) {
+function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm, primaryColor = '#13c8ec', secondaryColor = '#1a2c30', backgroundColor = '#111f22', eventId, sessionId }) {
   const [formData, setFormData] = useState({ cedula: '', nombre: '', apellido: '', telefono: '' });
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [rateConfig, setRateConfig] = useState(null);
@@ -116,8 +116,8 @@ function ReservationModal({ seat, rodada, session, onClose, onConfirm, primaryCo
     return isNaN(priceNum) ? null : (priceNum * rate).toFixed(2);
   };
 
-  // Precio: session prop tiene prioridad, luego rodada
-  const sessionPrice = session?.price || rodada?.price || rodada?.sessions?.[0]?.price || null;
+  // seatPrice (precio por fila) tiene prioridad sobre el precio general de sesión
+  const sessionPrice = seatPrice || session?.price || rodada?.price || rodada?.sessions?.[0]?.price || null;
 
   /* ── Handlers ── */
   const handleInput = (e) => {

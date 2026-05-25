@@ -8,6 +8,12 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
   const [loading, setLoading] = useState(!externalReservations);
   const [internalTab, setInternalTab] = useState(config?.sessions?.[0]?.id || '');
   const [selectedSeat, setSelectedSeat] = useState(null);
+  const [editingRowNote, setEditingRowNote] = useState(null);
+  const [savingNote, setSavingNote] = useState(false);
+  const [localConfig, setLocalConfig] = useState(config);
+
+  // Sincronizar localConfig si cambia el prop config desde el padre
+  useEffect(() => { setLocalConfig(config); }, [config]);
 
   // Si el padre controla el tab, usar el suyo; si no, usar el interno
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalTab;
@@ -16,7 +22,7 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
     else setInternalTab(id);
   };
 
-  const sessions = config?.sessions || [];
+  const sessions = localConfig?.sessions || [];
 
   useEffect(() => {
     if (!eventId) return;
@@ -79,7 +85,7 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
 
   // Redistribuir por rowConfiguration del config (igual que el público ve las bicis).
   // Ignoramos row_number de BD porque puede estar desactualizado si se editó el evento.
-  const rowConfig = config?.sessions?.[0]?.rowConfiguration;
+  const rowConfig = localConfig?.sessions?.[0]?.rowConfiguration;
   const seatsByRow = (() => {
     if (rowConfig?.length > 0 && seats.length > 0) {
       const sorted = [...seats].sort((a, b) => a.seat_number - b.seat_number);
@@ -113,6 +119,37 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
   const occupiedCount = sessionReservations.filter(r => r.status === 'ocupada').length;
   const pendingCount = sessionReservations.filter(r => r.status === 'reservada').length;
   const availableCount = totalSelectable - occupiedCount - pendingCount;
+
+  // Obtiene el rowIndex (0-based) de un asiento según seatsByRow
+  const getRowIndexOfSeat = (seat) => {
+    const entries = Object.entries(seatsByRow).sort((a, b) => Number(a[0]) - Number(b[0]));
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i][1].some(s => s.id === seat.id)) return i;
+    }
+    return (seat.row_number || 1) - 1;
+  };
+
+  const handleSaveRowNote = async (rowIndex, note) => {
+    setSavingNote(true);
+    try {
+      const sessionIndex = localConfig.sessions.findIndex(s => s.id === activeTab);
+      if (sessionIndex === -1) return;
+      const newSessions = localConfig.sessions.map((s, i) => {
+        if (i !== sessionIndex) return s;
+        const currentNotes = s.rowNotes || s.rowConfiguration.map(() => '');
+        const newNotes = currentNotes.map((v, ri) => ri === rowIndex ? note : v);
+        return { ...s, rowNotes: newNotes };
+      });
+      const newConfig = { ...localConfig, sessions: newSessions };
+      await supabase.from('events').update({ config: newConfig }).eq('id', eventId);
+      setLocalConfig(newConfig);
+      setEditingRowNote(null);
+    } catch (e) {
+      console.error('Error guardando nota:', e);
+    } finally {
+      setSavingNote(false);
+    }
+  };
 
   const bikeColor = (status, isSelectable) => {
     if (!isSelectable) return '#1e2a2e';
@@ -264,7 +301,7 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
       {/* Detalle del asiento seleccionado */}
       {selectedSeat && (
         <div style={{
-          borderRadius: '12px', padding: '13px',
+          borderRadius: '12px', padding: '13px', marginBottom: '12px',
           border: `1px solid ${selectedSeat.status === 'ocupada' ? 'rgba(239,68,68,0.3)'
             : selectedSeat.status === 'reservada' ? 'rgba(251,191,36,0.3)'
               : `${primaryColor}30`}`
@@ -296,6 +333,75 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
           )}
         </div>
       )}
+
+      {/* Notas por fila */}
+      {(() => {
+        const session = localConfig?.sessions?.find(s => s.id === activeTab);
+        const rowEntries = Object.entries(seatsByRow).sort((a, b) => Number(a[0]) - Number(b[0]));
+        if (rowEntries.length === 0) return null;
+        return (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <h3 style={{ color: 'white', fontSize: '13px', fontWeight: '700', margin: 0 }}>Notas por Fila</h3>
+              <span style={{ color: '#475569', fontSize: '11px' }}>Visibles al seleccionar bici</span>
+            </div>
+            {rowEntries.map(([rowNum, _], idx) => {
+              const currentNote = (session?.rowNotes || [])[idx] || '';
+              const isEditing = editingRowNote?.rowIndex === idx;
+              return (
+                <div key={rowNum} style={{ marginBottom: '8px', borderRadius: '10px', border: `1px solid ${currentNote ? `${primaryColor}25` : 'rgba(255,255,255,0.06)'}`, padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isEditing ? '8px' : currentNote ? '6px' : '0' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: idx === 0 ? primaryColor : '#94a3b8' }}>
+                      {idx === 0 ? 'Fila 1 ★ (Instructor)' : `Fila ${idx + 1}`}
+                    </span>
+                    {!isEditing && (
+                      <button
+                        onClick={() => setEditingRowNote({ rowIndex: idx, note: currentNote })}
+                        style={{
+                          background: `${primaryColor}18`, color: primaryColor,
+                          border: `1px solid ${primaryColor}30`, borderRadius: '6px',
+                          padding: '3px 9px', fontSize: '11px', fontWeight: '700', cursor: 'pointer'
+                        }}
+                      >{currentNote ? 'Editar' : '+ Nota'}</button>
+                    )}
+                  </div>
+
+                  {isEditing ? (
+                    <div>
+                      <textarea
+                        autoFocus
+                        value={editingRowNote.note}
+                        onChange={e => setEditingRowNote({ ...editingRowNote, note: e.target.value })}
+                        placeholder="Ej: Incluye termo, llavero y ropa deportiva"
+                        rows={2}
+                        style={{
+                          width: '100%', padding: '8px 10px', borderRadius: '8px', boxSizing: 'border-box',
+                          border: `1.5px solid ${primaryColor}40`, background: `${primaryColor}08`,
+                          color: '#e2e8f0', fontSize: '13px', fontFamily: 'Inter, sans-serif',
+                          resize: 'none', outline: 'none'
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                        <button
+                          onClick={() => setEditingRowNote(null)}
+                          style={{ flex: 1, padding: '7px', borderRadius: '7px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#64748b', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+                        >Cancelar</button>
+                        <button
+                          onClick={() => handleSaveRowNote(editingRowNote.rowIndex, editingRowNote.note)}
+                          disabled={savingNote}
+                          style={{ flex: 2, padding: '7px', borderRadius: '7px', border: 'none', background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: backgroundColor, fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
+                        >{savingNote ? 'Guardando...' : 'Guardar'}</button>
+                      </div>
+                    </div>
+                  ) : currentNote ? (
+                    <p style={{ color: '#64748b', fontSize: '12px', margin: 0, lineHeight: 1.5, fontStyle: 'italic' }}>"{currentNote}"</p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }

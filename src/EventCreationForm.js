@@ -119,6 +119,7 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                     time: '',
                     seatCount: 27,
                     rowConfiguration: [6, 5, 5, 5, 6],
+                    rowPrices: ['', '', '', '', ''],
                     instructors: [{ name: '', rank: '' }]
                 }
             ],
@@ -301,11 +302,24 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
         });
     };
 
+    const handleRowPriceChange = (sessionIndex, rowIndex, value) => {
+        setFormData(prev => {
+            const newSessions = prev.config.sessions.map((s, i) => {
+                if (i !== sessionIndex) return s;
+                const currentPrices = s.rowPrices || s.rowConfiguration.map(() => '');
+                const newRowPrices = currentPrices.map((v, ri) => ri === rowIndex ? value : v);
+                return { ...s, rowPrices: newRowPrices };
+            });
+            return { ...prev, config: { ...prev.config, sessions: newSessions } };
+        });
+    };
+
     const addRow = (sessionIndex) => {
         setFormData(prev => {
             const newSessions = prev.config.sessions.map((s, i) => {
                 if (i !== sessionIndex) return s;
-                return { ...s, rowConfiguration: [...s.rowConfiguration, 5] };
+                const currentPrices = s.rowPrices || s.rowConfiguration.map(() => '');
+                return { ...s, rowConfiguration: [...s.rowConfiguration, 5], rowPrices: [...currentPrices, ''] };
             });
 
             return {
@@ -320,7 +334,12 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
             const newSessions = prev.config.sessions.map((s, i) => {
                 if (i !== sessionIndex) return s;
                 if (s.rowConfiguration.length <= 1) return s;
-                return { ...s, rowConfiguration: s.rowConfiguration.filter((_, ri) => ri !== rowIndex) };
+                const currentPrices = s.rowPrices || s.rowConfiguration.map(() => '');
+                return {
+                    ...s,
+                    rowConfiguration: s.rowConfiguration.filter((_, ri) => ri !== rowIndex),
+                    rowPrices: currentPrices.filter((_, ri) => ri !== rowIndex)
+                };
             });
 
             return {
@@ -345,6 +364,7 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                         time: '',
                         seatCount: 27,
                         rowConfiguration: [6, 5, 5, 5, 6],
+                        rowPrices: ['', '', '', '', ''],
                         instructors: [{ name: '' }]
                     }
                 ]
@@ -1414,14 +1434,16 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                             <span style={{ color: '#13c8ec', fontWeight: '700' }}>★ Fila 1</span> = bicis al lado del instructor (fila frontal)
                                         </div>
 
-                                        {session.rowConfiguration.map((seatsInRow, rowIndex) => (
+                                        {session.rowConfiguration.map((seatsInRow, rowIndex) => {
+                                            const rowPrice = (session.rowPrices || [])[rowIndex] ?? '';
+                                            return (
                                             <div key={rowIndex} style={{ marginBottom: '10px' }}>
                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                     <label style={{
                                                         color: rowIndex === 0 ? '#13c8ec' : '#94a3b8',
                                                         fontSize: '12px',
                                                         fontWeight: rowIndex === 0 ? '700' : '500',
-                                                        minWidth: '80px'
+                                                        minWidth: '56px'
                                                     }}>
                                                         {rowIndex === 0 ? 'Fila 1 ★' : `Fila ${rowIndex + 1}`}
                                                     </label>
@@ -1431,25 +1453,46 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                                         onChange={(e) => handleRowConfigChange(sessionIndex, rowIndex, e.target.value)}
                                                         min="1"
                                                         max="10"
+                                                        placeholder="Bicis"
                                                         style={{
-                                                            flex: 1,
-                                                            padding: '10px 12px',
+                                                            width: '60px',
+                                                            padding: '10px 8px',
                                                             background: 'rgba(255,255,255,0.05)',
                                                             border: '1px solid rgba(255,255,255,0.1)',
                                                             borderRadius: '8px',
                                                             color: '#fff',
                                                             fontSize: '14px',
                                                             boxSizing: 'border-box',
-                                                            outline: 'none'
+                                                            outline: 'none',
+                                                            textAlign: 'center'
                                                         }}
                                                     />
-                                                    <span style={{
-                                                        color: '#94a3b8',
-                                                        fontSize: '12px',
-                                                        minWidth: '60px'
-                                                    }}>
-                                                        asientos
-                                                    </span>
+                                                    <div style={{ position: 'relative', flex: 1 }}>
+                                                        <span style={{
+                                                            position: 'absolute', left: '10px', top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                            color: '#13c8ec', fontSize: '13px', fontWeight: '700',
+                                                            pointerEvents: 'none'
+                                                        }}>$</span>
+                                                        <input
+                                                            type="number"
+                                                            value={rowPrice}
+                                                            onChange={(e) => handleRowPriceChange(sessionIndex, rowIndex, e.target.value)}
+                                                            placeholder="Precio fila"
+                                                            min="0"
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '10px 10px 10px 24px',
+                                                                background: 'rgba(19,200,236,0.05)',
+                                                                border: `1px solid ${rowPrice ? 'rgba(19,200,236,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                                                                borderRadius: '8px',
+                                                                color: rowPrice ? '#13c8ec' : '#94a3b8',
+                                                                fontSize: '13px',
+                                                                boxSizing: 'border-box',
+                                                                outline: 'none'
+                                                            }}
+                                                        />
+                                                    </div>
                                                     {session.rowConfiguration.length > 1 && (
                                                         <button
                                                             type="button"
@@ -1463,7 +1506,8 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                                                 cursor: 'pointer',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
-                                                                justifyContent: 'center'
+                                                                justifyContent: 'center',
+                                                                flexShrink: 0
                                                             }}
                                                         >
                                                             <TrashIcon />
@@ -1471,7 +1515,8 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                                     )}
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
 
                                         <button
                                             type="button"
