@@ -223,6 +223,89 @@ export const createSeatsForEvent = async (eventId, sessions) => {
 };
 
 /**
+ * Actualiza el layout de asientos sin borrar reservas.
+ * - Asientos existentes: se actualiza su row_number según el nuevo rowConfiguration
+ * - Asientos sobrantes (filas eliminadas): se eliminan solo si no tienen reservas
+ * - Asientos nuevos: se crean si el total aumentó
+ */
+export const updateSeatsLayout = async (eventId, sessions) => {
+    try {
+        const masterSession = sessions[0];
+        if (!masterSession) return { success: true };
+
+        const rowConfig = masterSession.rowConfiguration || [6, 5, 5, 5, 6];
+
+        // Construir mapa nuevo: seat_number → row_number
+        const newLayout = {};
+        let seatNum = 1;
+        rowConfig.forEach((count, rowIdx) => {
+            const n = parseInt(count) || 0;
+            for (let i = 0; i < n; i++) {
+                newLayout[seatNum] = rowIdx + 1;
+                seatNum++;
+            }
+        });
+        const newTotal = seatNum - 1;
+
+        // Traer asientos actuales ordenados por seat_number
+        const { data: existingSeats, error: fetchError } = await supabase
+            .from('seats')
+            .select('id, seat_number, row_number')
+            .eq('event_id', eventId)
+            .order('seat_number');
+
+        if (fetchError) return { success: false, errors: [fetchError.message] };
+
+        const existingTotal = existingSeats?.length || 0;
+
+        // 1. Actualizar row_number de asientos que cambian de fila
+        const toUpdate = (existingSeats || []).filter(s => {
+            const newRow = newLayout[s.seat_number];
+            return newRow !== undefined && newRow !== s.row_number;
+        });
+
+        for (const seat of toUpdate) {
+            await supabase.from('seats')
+                .update({ row_number: newLayout[seat.seat_number] })
+                .eq('id', seat.id);
+        }
+
+        // 2. Eliminar asientos sobrantes (seat_number > newTotal) que no tengan reservas
+        if (existingTotal > newTotal) {
+            const surplusSeats = (existingSeats || []).filter(s => s.seat_number > newTotal);
+            for (const seat of surplusSeats) {
+                const { data: res } = await supabase
+                    .from('reservations').select('id').eq('seat_id', seat.id).limit(1);
+                if (!res || res.length === 0) {
+                    await supabase.from('seats').delete().eq('id', seat.id);
+                }
+                // Si tiene reservas, se deja el asiento aunque ya no esté en el layout
+            }
+        }
+
+        // 3. Crear asientos nuevos si el total aumentó
+        if (newTotal > existingTotal) {
+            const newSeats = [];
+            for (let n = existingTotal + 1; n <= newTotal; n++) {
+                newSeats.push({
+                    event_id: eventId,
+                    seat_number: n,
+                    row_number: newLayout[n],
+                    is_selectable: true
+                });
+            }
+            if (newSeats.length > 0) {
+                await supabase.from('seats').insert(newSeats);
+            }
+        }
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, errors: [error.message] };
+    }
+};
+
+/**
  * Actualiza un evento existente
  */
 export const updateEvent = async (eventId, eventData) => {
@@ -273,43 +356,11 @@ export const updateEvent = async (eventId, eventData) => {
             console.warn('Advertencia: no se pudieron actualizar las imágenes:', imgError.message);
         }
 
-        // Solo regenerar asientos si NO hay reservas activas
-        // Si hay reservas, conservar los asientos existentes para no perder datos
-        const { data: existingReservations } = await supabase
-            .from('reservations')
-            .select('id')
-            .eq('event_id', eventId)
-            .limit(1);
-
-        const hasReservations = existingReservations && existingReservations.length > 0;
-
-        if (!hasReservations) {
-            // Sin reservas: regenerar asientos con la nueva configuración
-            const { error: deleteError } = await supabase
-                .from('seats')
-                .delete()
-                .eq('event_id', eventId);
-
-            if (deleteError) {
-                console.error('Error deleting old seats:', deleteError);
-                return {
-                    success: false,
-                    errors: ['Error al actualizar la configuración de asientos: ' + deleteError.message]
-                };
-            }
-
-            const seatsResult = await createSeatsForEvent(eventId, eventData.config.sessions);
-
-            if (!seatsResult.success) {
-                console.error('Error regenerating seats:', seatsResult.errors);
-                return {
-                    success: false,
-                    errors: ['Evento actualizado pero error al regenerar asientos: ' + seatsResult.errors.join(', ')]
-                };
-            }
+        // Actualizar layout de asientos preservando reservas
+        const seatsResult = await updateSeatsLayout(eventId, eventData.config.sessions);
+        if (!seatsResult.success) {
+            console.warn('Advertencia al actualizar layout de asientos:', seatsResult.errors);
         }
-        // Si hay reservas, los asientos se conservan tal cual para no perder reservas activas
-        // El llamador puede leer seatsPreserved para mostrar un aviso al usuario
 
 
 
@@ -361,8 +412,7 @@ export const updateEvent = async (eventId, eventData) => {
 
         return {
             success: true,
-            event: data,
-            seatsPreserved: hasReservations
+            event: data
         };
 
     } catch (error) {

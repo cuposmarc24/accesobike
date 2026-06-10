@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { supabase } from './lib/supabase';
+import { updateSeatsLayout } from './lib/eventCreation';
 
 const font = "'Inter', system-ui, sans-serif";
 
@@ -139,6 +140,10 @@ function EventQuickEdit({ event, onClose, onSaved }) {
     (event.config?.sessions || []).map(s => ({ ...s }))
   );
 
+  const [rowConfig, setRowConfig] = useState(
+    (event.config?.sessions?.[0]?.rowConfiguration || [6, 5, 5, 5, 6]).map(Number)
+  );
+
   const [adminCreds, setAdminCreds] = useState({ username: '', password: '' });
 
   const [theme, setTheme] = useState({
@@ -231,6 +236,26 @@ function EventQuickEdit({ event, onClose, onSaved }) {
     }
     if (error) return markError('admin', error.message);
     markDone('admin', 'Usuario admin');
+  };
+
+  // ── Guardar Mapa de Bicis ──
+  const saveSeats = async () => {
+    const total = rowConfig.reduce((s, n) => s + (parseInt(n) || 0), 0);
+    if (total < 1) { alert('Debe haber al menos 1 bici en total'); return; }
+
+    markSaving('seats');
+    const newSessions = (event.config?.sessions || []).map((s, i) =>
+      i === 0 ? { ...s, rowConfiguration: rowConfig.map(n => parseInt(n) || 0), seatCount: total } : s
+    );
+    const newConfig = { ...event.config, sessions: newSessions };
+
+    const { error } = await supabase.from('events').update({ config: newConfig }).eq('id', event.id);
+    if (error) return markError('seats', error.message);
+
+    const result = await updateSeatsLayout(event.id, newSessions);
+    if (!result.success) return markError('seats', result.errors?.join(', ') || 'Error al actualizar asientos');
+
+    markDone('seats', 'Mapa de bicis');
   };
 
   // ── Guardar Tema ──
@@ -335,6 +360,67 @@ function EventQuickEdit({ event, onClose, onSaved }) {
                   ))}
                 </div>
               ))}
+            </Section>
+
+            {/* Mapa de Bicis */}
+            <Section title="Mapa de Bicis" icon="🚲" onSave={saveSeats} saving={saving.seats} forceClose={closedAt.seats}>
+              <p style={{ margin: '0 0 12px', fontSize: '11px', color: '#f59e0b', fontFamily: font, lineHeight: 1.5 }}>
+                ⚠️ Las bicis con reservas activas no se eliminarán aunque reduzcas la fila.
+              </p>
+
+              {/* Total */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '12px', color: '#64748b', fontFamily: font }}>Total de bicis</span>
+                <span style={{ fontSize: '14px', fontWeight: '800', color: primaryColor, fontFamily: font }}>
+                  {rowConfig.reduce((s, n) => s + (parseInt(n) || 0), 0)}
+                </span>
+              </div>
+
+              {/* Filas */}
+              {rowConfig.map((count, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{
+                    fontSize: '12px', fontWeight: '700', minWidth: '70px',
+                    color: idx === 0 ? primaryColor : '#94a3b8', fontFamily: font
+                  }}>
+                    {idx === 0 ? 'Fila 1 ★' : `Fila ${idx + 1}`}
+                  </span>
+                  <input
+                    type="number" min="0" max="20"
+                    value={count}
+                    onChange={e => setRowConfig(p => p.map((v, i) => i === idx ? e.target.value : v))}
+                    style={{
+                      width: '70px', padding: '8px 10px', borderRadius: '8px', textAlign: 'center',
+                      border: `1.5px solid ${idx === 0 ? primaryColor + '50' : 'rgba(255,255,255,0.1)'}`,
+                      background: 'rgba(255,255,255,0.04)', color: '#e2e8f0',
+                      fontSize: '14px', fontFamily: font, outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                  <span style={{ fontSize: '12px', color: '#475569', fontFamily: font }}>bicis</span>
+                  {rowConfig.length > 1 && (
+                    <button
+                      onClick={() => setRowConfig(p => p.filter((_, i) => i !== idx))}
+                      style={{
+                        marginLeft: 'auto', background: 'rgba(239,68,68,0.12)',
+                        border: 'none', borderRadius: '7px', padding: '6px 10px',
+                        color: '#ef4444', fontSize: '12px', cursor: 'pointer', fontFamily: font
+                      }}
+                    >✕</button>
+                  )}
+                </div>
+              ))}
+
+              {/* Agregar fila */}
+              <button
+                onClick={() => setRowConfig(p => [...p, 5])}
+                style={{
+                  width: '100%', marginTop: '6px', padding: '9px',
+                  background: `${primaryColor}10`,
+                  border: `1px dashed ${primaryColor}40`,
+                  borderRadius: '9px', color: primaryColor,
+                  fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: font
+                }}
+              >+ Agregar fila</button>
             </Section>
 
             {/* Admin */}
