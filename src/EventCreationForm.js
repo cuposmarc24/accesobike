@@ -1353,7 +1353,7 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                             </div>
                                         ))}
 
-                                        {session.instructors.length < 3 && (
+                                        {session.instructors.length < 6 && (
                                             <button
                                                 type="button"
                                                 onClick={() => addInstructor(sessionIndex)}

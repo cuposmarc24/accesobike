@@ -350,14 +350,44 @@ function EventQuickEdit({ event, onClose, onSaved }) {
 
                   {/* Instructores */}
                   {(s.instructors || []).map((inst, k) => (
-                    <Field key={k}
-                      label={`Instructor ${k + 1}${inst.rank ? ` (${inst.rank})` : ''}`}
-                      value={inst.name}
-                      onChange={v => setSessions(p => p.map((x, j) => j === i
-                        ? { ...x, instructors: x.instructors.map((ins, l) => l === k ? { ...ins, name: v } : ins) }
-                        : x))}
-                    />
+                    <div key={k} style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                      <div style={{ flex: 1 }}>
+                        <Field
+                          label={`Instructor ${k + 1}${inst.rank ? ` (${inst.rank})` : ''}`}
+                          value={inst.name}
+                          onChange={v => setSessions(p => p.map((x, j) => j === i
+                            ? { ...x, instructors: x.instructors.map((ins, l) => l === k ? { ...ins, name: v } : ins) }
+                            : x))}
+                        />
+                      </div>
+                      {(s.instructors || []).length > 1 && (
+                        <button
+                          onClick={() => setSessions(p => p.map((x, j) => j === i
+                            ? { ...x, instructors: x.instructors.filter((_, l) => l !== k) }
+                            : x))}
+                          style={{
+                            background: 'rgba(239,68,68,0.12)', border: 'none', borderRadius: '8px',
+                            padding: '10px 12px', color: '#ef4444', fontSize: '13px',
+                            cursor: 'pointer', marginBottom: '12px', flexShrink: 0
+                          }}
+                        >✕</button>
+                      )}
+                    </div>
                   ))}
+                  {(s.instructors || []).length < 6 && (
+                    <button
+                      onClick={() => setSessions(p => p.map((x, j) => j === i
+                        ? { ...x, instructors: [...(x.instructors || []), { name: '', rank: '' }] }
+                        : x))}
+                      style={{
+                        width: '100%', padding: '8px',
+                        background: `${primaryColor}10`,
+                        border: `1px dashed ${primaryColor}40`,
+                        borderRadius: '8px', color: primaryColor,
+                        fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: font
+                      }}
+                    >+ Agregar instructor</button>
+                  )}
                 </div>
               ))}
             </Section>

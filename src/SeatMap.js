@@ -421,13 +421,43 @@ function SeatMap({ rodada, onBack, session }) {
                 </div>
               )}
 
-              {/* Instructor / Tarima Label */}
+              {/* Instructor / Tarima — bicis de instructores (solo visuales) */}
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 margin: '0 20px'
               }}>
+                {(() => {
+                  const instructors = (currentSession?.instructors || [])
+                    .filter(inst => inst?.name && inst.name.trim())
+                    .slice(0, 6);
+                  if (instructors.length === 0) return null;
+                  return (
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '160px' }}>
+                      {instructors.map((inst, i) => (
+                        <div
+                          key={i}
+                          title={inst.name}
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            background: `${primaryColor}18`,
+                            border: `1.5px solid ${primaryColor}60`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: `0 0 10px ${primaryColor}25`,
+                            pointerEvents: 'none'
+                          }}
+                        >
+                          <MdOutlineDirectionsBike size={16} color={primaryColor} />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
                 <div style={{
                   height: '1px',
                   background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)`,
