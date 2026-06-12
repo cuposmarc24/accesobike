@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createEvent, updateEvent } from './lib/eventCreation';
+import { supabase } from './lib/supabase';
 
 // Icon Components (same as before)
 const InfoIcon = () => (
@@ -704,15 +705,27 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                             <input
                                                 type="file"
                                                 accept="image/*"
-                                                onChange={(e) => {
+                                                onChange={async (e) => {
                                                     const file = e.target.files[0];
-                                                    if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            handleInputChange('cycling_room_logo', reader.result);
-                                                        };
-                                                        reader.readAsDataURL(file);
-                                                    }
+                                                    if (!file) return;
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        handleInputChange('cycling_room_logo', reader.result);
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                    try {
+                                                        const ext = file.name.split('.').pop() || 'jpg';
+                                                        const path = `logos/${Date.now()}_logo.${ext}`;
+                                                        const { error: uploadError } = await supabase.storage
+                                                            .from('comprobantes')
+                                                            .upload(path, file, { cacheControl: '3600', upsert: false });
+                                                        if (!uploadError) {
+                                                            const { data: urlData } = supabase.storage.from('comprobantes').getPublicUrl(path);
+                                                            if (urlData?.publicUrl) {
+                                                                handleInputChange('cycling_room_logo', urlData.publicUrl);
+                                                            }
+                                                        }
+                                                    } catch (_) {}
                                                 }}
                                                 style={{ display: 'none' }}
                                             />
@@ -853,16 +866,29 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                             <input
                                                 type="file"
                                                 accept="image/*"
-                                                onChange={(e) => {
+                                                onChange={async (e) => {
                                                     const file = e.target.files[0];
-                                                    if (file) {
-                                                        // Convert to base64 for preview and storage
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            handleInputChange('event_image', reader.result);
-                                                        };
-                                                        reader.readAsDataURL(file);
-                                                    }
+                                                    if (!file) return;
+                                                    // Preview local inmediato
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        handleInputChange('event_image', reader.result);
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                    // Subir a Storage y reemplazar con URL
+                                                    try {
+                                                        const ext = file.name.split('.').pop() || 'jpg';
+                                                        const path = `events/${Date.now()}_cover.${ext}`;
+                                                        const { error: uploadError } = await supabase.storage
+                                                            .from('comprobantes')
+                                                            .upload(path, file, { cacheControl: '3600', upsert: false });
+                                                        if (!uploadError) {
+                                                            const { data: urlData } = supabase.storage.from('comprobantes').getPublicUrl(path);
+                                                            if (urlData?.publicUrl) {
+                                                                handleInputChange('event_image', urlData.publicUrl);
+                                                            }
+                                                        }
+                                                    } catch (_) {}
                                                 }}
                                                 style={{ display: 'none' }}
                                             />
@@ -1209,15 +1235,29 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                                     <input
                                                         type="file"
                                                         accept="image/*"
-                                                        onChange={(e) => {
+                                                        onChange={async (e) => {
                                                             const file = e.target.files[0];
-                                                            if (file) {
-                                                                const reader = new FileReader();
-                                                                reader.onloadend = () => {
-                                                                    handleSessionChange(sessionIndex, 'image', reader.result);
-                                                                };
-                                                                reader.readAsDataURL(file);
-                                                            }
+                                                            if (!file) return;
+                                                            // Mostrar preview local mientras sube
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => {
+                                                                handleSessionChange(sessionIndex, 'image', reader.result);
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                            // Subir a Storage y reemplazar con URL pública
+                                                            try {
+                                                                const ext = file.name.split('.').pop() || 'jpg';
+                                                                const path = `flyers/${Date.now()}_session${sessionIndex}.${ext}`;
+                                                                const { error: uploadError } = await supabase.storage
+                                                                    .from('comprobantes')
+                                                                    .upload(path, file, { cacheControl: '3600', upsert: false });
+                                                                if (!uploadError) {
+                                                                    const { data: urlData } = supabase.storage.from('comprobantes').getPublicUrl(path);
+                                                                    if (urlData?.publicUrl) {
+                                                                        handleSessionChange(sessionIndex, 'image', urlData.publicUrl);
+                                                                    }
+                                                                }
+                                                            } catch (_) {}
                                                         }}
                                                         style={{ display: 'none' }}
                                                     />

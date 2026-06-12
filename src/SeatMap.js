@@ -434,7 +434,7 @@ function SeatMap({ rodada, onBack, session }) {
                     .slice(0, 6);
                   if (instructors.length === 0) return null;
                   return (
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '160px' }}>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'nowrap', justifyContent: 'center' }}>
                       {instructors.map((inst, i) => (
                         <div
                           key={i}
@@ -473,7 +473,7 @@ function SeatMap({ rodada, onBack, session }) {
                   fontWeight: '600',
                   textAlign: 'center'
                 }}>
-                  Instructor<br />Tarima
+                  Tarima
                 </span>
               </div>
 
