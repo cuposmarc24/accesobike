@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { MdOutlineDirectionsBike } from 'react-icons/md';
 
-function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundColor, reservations: externalReservations, activeTab: externalActiveTab, onTabChange }) {
+function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundColor, reservations: externalReservations, activeTab: externalActiveTab, onTabChange, onNoteSaved }) {
   const [seats, setSeats] = useState([]);
   const [reservations, setReservations] = useState(externalReservations || []);
   const [loading, setLoading] = useState(!externalReservations);
@@ -12,8 +12,25 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
   const [savingNote, setSavingNote] = useState(false);
   const [localConfig, setLocalConfig] = useState(config);
 
-  // Sincronizar localConfig si cambia el prop config desde el padre
-  useEffect(() => { setLocalConfig(config); }, [config]);
+  // Solo sincronizar localConfig si el config del padre trae datos nuevos que no son notas
+  // (evitar pisar notas recién guardadas localmente)
+  useEffect(() => {
+    if (!config) return;
+    setLocalConfig(prev => {
+      // Mantener rowNotes del estado local (recién guardadas) sobre las del prop
+      const merged = {
+        ...config,
+        sessions: (config.sessions || []).map((s, i) => {
+          const localSession = prev?.sessions?.[i];
+          return {
+            ...s,
+            rowNotes: localSession?.rowNotes ?? s.rowNotes
+          };
+        })
+      };
+      return merged;
+    });
+  }, [config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Si el padre controla el tab, usar el suyo; si no, usar el interno
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalTab;
@@ -140,7 +157,14 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
         const newNotes = currentNotes.map((v, ri) => ri === rowIndex ? note : v);
         return { ...s, rowNotes: newNotes };
       });
-      const newConfig = { ...localConfig, sessions: newSessions };
+      // Limpiar base64 del config antes de guardar para evitar payload pesado
+      const newConfig = {
+        ...localConfig,
+        sessions: newSessions.map(s => ({
+          ...s,
+          image: s.image && !s.image.startsWith('data:') ? s.image : ''
+        }))
+      };
       await supabase.from('events').update({ config: newConfig }).eq('id', eventId);
       setLocalConfig(newConfig);
       setEditingRowNote(null);
@@ -215,7 +239,7 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
       </div>
 
       {/* Leyenda */}
-      <div style={{ display: 'flex', gap: '14px', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', justifyContent: 'center' }}>
         {[
           { color: '#4ade80', label: 'Disponible' },
           { color: '#fbbf24', label: 'Pendiente' },
@@ -277,7 +301,7 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
                 )}
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ height: '1px', background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)`, opacity: 0.4, width: '60px', margin: '0 auto 6px' }} />
-                  <span style={{ color: '#334155', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>▲ Instructor</span>
+                  <span style={{ color: '#334155', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>▲ Tarima</span>
                 </div>
                 {rightSeats.length > 0 && (
                   <div style={{ display: 'flex', gap: '3px' }}>{rightSeats.map(renderBike)}</div>

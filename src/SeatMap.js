@@ -616,12 +616,15 @@ function SeatMap({ rodada, onBack, session }) {
               padding: '9px 12px',
               marginBottom: '14px'
             }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}>
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>
-                {rowNote}
-              </span>
+              <div style={{ flexShrink: 0, marginTop: '1px' }}>🎁</div>
+              <div>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '3px' }}>
+                  Incluido en tu reserva
+                </span>
+                <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: "'Inter', sans-serif", lineHeight: 1.6, whiteSpace: 'pre-line', display: 'block' }}>
+                  {rowNote}
+                </span>
+              </div>
             </div>
           )}
 

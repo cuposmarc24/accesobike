@@ -379,7 +379,7 @@ function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm
                           }}>{pm.currency}</span>
                         </div>
                         {pm.description && (
-                          <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b', fontFamily: font, lineHeight: '1.4' }}>{pm.description}</p>
+                          <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b', fontFamily: font, lineHeight: '1.4', whiteSpace: 'pre-line' }}>{pm.description}</p>
                         )}
                       </div>
                     </div>

@@ -165,14 +165,21 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                 id: editingEvent.id,
                 event_name: editingEvent.event_name || '',
                 cycling_room: editingEvent.cycling_room || '',
-                cycling_room_logo: editingEvent.cycling_room_logo || '', // Added this field
-                event_image: editingEvent.event_image || '',
+                cycling_room_logo: (editingEvent.cycling_room_logo && !editingEvent.cycling_room_logo.startsWith('data:')) ? editingEvent.cycling_room_logo : '',
+                event_image: (editingEvent.event_image && !editingEvent.event_image.startsWith('data:')) ? editingEvent.event_image : '',
                 start_date: formatDateForInput(editingEvent.start_date),
                 end_date: formatDateForInput(editingEvent.end_date),
                 is_active: editingEvent.is_active !== undefined ? editingEvent.is_active : true,
                 expiration_date: formatDateForInput(editingEvent.expiration_date),
                 auto_deactivate: editingEvent.auto_deactivate !== undefined ? editingEvent.auto_deactivate : true,
-                config: editingEvent.config || formData.config,
+                config: {
+                    ...(editingEvent.config || formData.config),
+                    sessions: ((editingEvent.config || formData.config)?.sessions || []).map(s => {
+                        // Si la imagen es base64 (empieza con "data:"), descartarla — ya no usamos base64
+                        const image = s.image && !s.image.startsWith('data:') ? s.image : '';
+                        return { ...s, image };
+                    })
+                },
                 adminUser: {
                     username: '',
                     password: '',

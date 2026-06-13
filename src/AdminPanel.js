@@ -25,7 +25,7 @@ const formatMontoVE = (value) => {
 };
 
 function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventData: propEventData }) {
-  const { eventId: contextEventId, config: contextConfig, eventData: contextEventData } = useEventConfig();
+  const { eventId: contextEventId, config: contextConfig, eventData: contextEventData, reloadConfig } = useEventConfig();
 
   const eventId = propEventId || contextEventId;
   const config = contextConfig || propConfig;
@@ -857,6 +857,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
               reservations={reservations}
               activeTab={activeSessionTab}
               onTabChange={setActiveSessionTab}
+              onNoteSaved={reloadConfig}
             />
           </div>
         );
