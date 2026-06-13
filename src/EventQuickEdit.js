@@ -95,25 +95,50 @@ const Field = ({ label, value, onChange, type = 'text', placeholder }) => (
   </div>
 );
 
-const ImageField = ({ label, value, onChange }) => {
+const ImageField = ({ label, value, onChange, folder = 'flyers' }) => {
   const ref = useRef();
-  const handleFile = (e) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Preview local inmediato
     const reader = new FileReader();
     reader.onload = ev => onChange(ev.target.result);
     reader.readAsDataURL(file);
+
+    // Subir a Storage y reemplazar con URL pública
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('comprobantes')
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+      if (!uploadError) {
+        const { data: urlData } = supabase.storage.from('comprobantes').getPublicUrl(path);
+        if (urlData?.publicUrl) onChange(urlData.publicUrl);
+      }
+    } catch (_) {}
+    finally { setUploading(false); }
   };
+
+  const displayValue = value && !value.startsWith('data:') ? value : (value && value.startsWith('data:') ? value : null);
+
   return (
     <div style={{ marginBottom: '14px' }}>
       <label style={{ display: 'block', marginBottom: '6px', fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font }}>
         {label}
       </label>
-      {value && (
-        <img src={value} alt={label} style={{ width: '100%', maxHeight: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px', border: '1px solid rgba(255,255,255,0.08)' }} />
+      {displayValue && (
+        <img src={displayValue} alt={label} style={{ width: '100%', maxHeight: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px', border: '1px solid rgba(255,255,255,0.08)' }} />
       )}
-      <input ref={ref} type="file" accept="image/*" onChange={handleFile}
-        style={{ color: '#94a3b8', fontSize: '12px', fontFamily: font, width: '100%' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <input ref={ref} type="file" accept="image/*" onChange={handleFile}
+          style={{ color: '#94a3b8', fontSize: '12px', fontFamily: font, flex: 1 }} />
+        {uploading && <span style={{ fontSize: '11px', color: '#64748b', fontFamily: font }}>Subiendo...</span>}
+      </div>
     </div>
   );
 };
@@ -131,13 +156,15 @@ function EventQuickEdit({ event, onClose, onSaved }) {
     is_active: event.is_active !== false
   });
 
+  const cleanUrl = (v) => (v && !v.startsWith('data:') ? v : '');
+
   const [images, setImages] = useState({
-    event_image: event.event_image || '',
-    cycling_room_logo: event.cycling_room_logo || ''
+    event_image: cleanUrl(event.event_image),
+    cycling_room_logo: cleanUrl(event.cycling_room_logo)
   });
 
   const [sessions, setSessions] = useState(
-    (event.config?.sessions || []).map(s => ({ ...s }))
+    (event.config?.sessions || []).map(s => ({ ...s, image: cleanUrl(s.image) }))
   );
 
   const [rowConfig, setRowConfig] = useState(
@@ -195,8 +222,8 @@ function EventQuickEdit({ event, onClose, onSaved }) {
   const saveImages = async () => {
     markSaving('images');
     const { error } = await supabase.from('events').update({
-      event_image: images.event_image || null,
-      cycling_room_logo: images.cycling_room_logo || null
+      event_image: (images.event_image && !images.event_image.startsWith('data:')) ? images.event_image : null,
+      cycling_room_logo: (images.cycling_room_logo && !images.cycling_room_logo.startsWith('data:')) ? images.cycling_room_logo : null
     }).eq('id', event.id);
     if (error) return markError('images', error.message);
     markDone('images', 'Imágenes');
@@ -205,7 +232,12 @@ function EventQuickEdit({ event, onClose, onSaved }) {
   // ── Guardar Sesiones (datos + flyers, sin tocar asientos) ──
   const saveSessions = async () => {
     markSaving('sessions');
-    const newConfig = { ...event.config, sessions };
+    // Limpiar base64 antes de guardar para evitar timeout
+    const cleanSessions = sessions.map(s => ({
+      ...s,
+      image: s.image && !s.image.startsWith('data:') ? s.image : ''
+    }));
+    const newConfig = { ...event.config, sessions: cleanSessions };
     const { error } = await supabase.from('events').update({ config: newConfig }).eq('id', event.id);
     if (error) return markError('sessions', error.message);
     markDone('sessions', 'Sesiones');
