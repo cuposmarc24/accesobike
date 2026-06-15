@@ -15,8 +15,12 @@ export function getNotificationStatus() {
 }
 
 /**
- * Muestra notificación via Service Worker (funciona en background/PWA minimizada).
- * Fallback a Notification API directa si no hay SW.
+ * Muestra notificación push compatible con Android y iOS 16.4+ (PWA instalada).
+ *
+ * - registration.showNotification() es el único método que funciona con la app minimizada
+ *   tanto en Android como en iOS 16.4+ con la PWA instalada en pantalla de inicio.
+ * - postMessage solo funciona si la pestaña está activa en primer plano, por eso no se usa.
+ * - En iOS < 16.4 las notificaciones push no están soportadas por el sistema operativo.
  */
 export async function sendLocalNotification(title, body, options = {}) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -27,28 +31,17 @@ export async function sendLocalNotification(title, body, options = {}) {
     badge: '/logo192.png',
     vibrate: [200, 100, 200],
     tag: options.tag || 'accesoBike-reservation',
-    requireInteraction: options.requireInteraction ?? true,
-    ...options
+    requireInteraction: true,
+    data: { url: window.location.href }
   };
 
   try {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.ready;
-
-      // Usar postMessage para que el SW muestre la notificación
-      // Esto funciona incluso cuando la PWA está minimizada
-      if (registration.active) {
-        registration.active.postMessage({
-          type: 'SHOW_NOTIFICATION',
-          title,
-          body,
-          tag: payload.tag
-        });
-      } else {
-        // Fallback: mostrar directamente desde el SW
-        await registration.showNotification(title, payload);
-      }
+      // Funciona con PWA minimizada en Android y iOS 16.4+
+      await registration.showNotification(title, payload);
     } else {
+      // Fallback para navegador de escritorio sin SW
       new Notification(title, payload);
     }
   } catch (e) {
