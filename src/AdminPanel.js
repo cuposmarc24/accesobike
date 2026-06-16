@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import BikeLoader from './BikeLoader';
 import { supabase } from './lib/supabase';
 import { useEventConfig } from './lib/EventConfigProvider';
-import { sendAdminWhatsAppMessage, sendVIPAssignmentWhatsApp } from './whatsappService';
+import { buildAdminWhatsAppUrl, sendAdminWhatsAppMessage, sendVIPAssignmentWhatsApp } from './whatsappService';
 import AdminAlert from './AdminAlert';
 import AdminBikes from './AdminBikes';
 import AdminSettings from './AdminSettings';
@@ -154,9 +154,9 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
     }
   };
 
-  const showAlert = (type, title, message, onConfirm, onCancel = null) => {
+  const showAlert = (type, title, message, onConfirm, onCancel = null, whatsappUrl = null) => {
     setAlert({
-      isOpen: true, type, title, message,
+      isOpen: true, type, title, message, whatsappUrl,
       onConfirm: () => { setAlert({ isOpen: false }); if (typeof onConfirm === 'function') onConfirm(); },
       onCancel: onCancel ? () => { setAlert({ isOpen: false }); if (typeof onCancel === 'function') onCancel(); } : null
     });
@@ -197,9 +197,9 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         try {
           const { error } = await supabase.from('reservations').update({ status: 'ocupada' }).eq('id', reservation.id);
           if (error) { showAlert('error', 'Error', 'No se pudo confirmar la reserva'); return; }
-          sendAdminWhatsAppMessage(reservation, 'confirmada', eventData, config);
           await fetchReservations();
-          showAlert('success', '¡Confirmada!', 'Reserva confirmada y notificada por WhatsApp');
+          const waUrl = buildAdminWhatsAppUrl(reservation, 'confirmada', eventData, config);
+          showAlert('success', '¡Confirmada!', `Reserva de ${reservation.customer_name} confirmada.`, null, null, waUrl);
         } catch { showAlert('error', 'Error', 'Ocurrió un error al confirmar'); }
       }, () => { }
     );
@@ -216,10 +216,9 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
     try {
       const { error } = await supabase.from('reservations').delete().eq('id', reservation.id);
       if (error) { showAlert('error', 'Error', 'No se pudo cancelar la reserva'); return; }
-      // Add reason to reservation object for WhatsApp message
-      sendAdminWhatsAppMessage({ ...reservation, cancellationReason: reason }, 'cancelada', eventData, config);
       await fetchReservations();
-      showAlert('success', 'Cancelada', 'Reserva cancelada y notificada');
+      const waUrl = buildAdminWhatsAppUrl({ ...reservation, cancellationReason: reason }, 'cancelada', eventData, config);
+      showAlert('success', 'Cancelada', `Reserva de ${reservation.customer_name} cancelada.`, null, null, waUrl);
     } catch { showAlert('error', 'Error', 'Ocurrió un error al cancelar'); }
   };
 
@@ -995,6 +994,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         message={alert.message}
         onConfirm={alert.onConfirm}
         onCancel={alert.onCancel}
+        whatsappUrl={alert.whatsappUrl}
         theme={{ primaryColor, secondaryColor, backgroundColor }}
       />
 

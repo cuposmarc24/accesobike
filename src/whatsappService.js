@@ -73,13 +73,16 @@ export const sendVIPAssignmentWhatsApp = (bidData, seat) => {
   window.open(whatsappUrl, '_blank');
 };
 
-// FUNCIÓN para normalizar número de teléfono para wa.me (solo dígitos, sin +)
-// No asume código de país — respeta lo que el usuario ingresó
+// Normaliza número para wa.me: solo dígitos, con código de país 58 (Venezuela)
 const normalizePhoneNumber = (phone) => {
   if (!phone) return '';
-  // Si el usuario incluyó + (código de país internacional), quitarlo para la URL
-  // wa.me no acepta +, solo dígitos
-  return phone.replace(/[^\d]/g, '');
+  const digits = phone.replace(/[^\d]/g, '');
+  // Si empieza con 0 (formato local venezolano: 0414...) → reemplazar 0 por 58
+  if (digits.startsWith('0')) return '58' + digits.slice(1);
+  // Si ya tiene código de país (58...) dejarlo igual
+  if (digits.startsWith('58')) return digits;
+  // Otro formato: agregar 58 directamente
+  return '58' + digits;
 };
 
 // Función para formatear hora de 24h a 12h con AM/PM
@@ -99,30 +102,22 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// NUEVA FUNCIÓN para mensajes de confirmación y cancelación del admin
-export const sendAdminWhatsAppMessage = (reservation, action, eventData, config) => {
-  // Normalizar el número del cliente
-  const normalizedPhone = normalizePhoneNumber(reservation.customer_phone);
-  const customerPhone = normalizedPhone.replace('+', ''); // Solo números para la URL
-
-  // Obtener información del evento y sesión
+// Construye la URL de WhatsApp para confirmación/cancelación del admin (sin abrir)
+export const buildAdminWhatsAppUrl = (reservation, action, eventData, config) => {
+  const customerPhone = normalizePhoneNumber(reservation.customer_phone);
   const eventName = eventData?.event_name || 'Evento de Ciclismo';
   const cyclingRoom = eventData?.cycling_room || 'Sala Principal';
   const eventDate = formatDate(eventData?.start_date);
 
-  // Encontrar la sesión correspondiente
-  // Si session_id es igual al event_id (formato viejo), usar la primera sesión
   const isOldFormat = reservation.session_id === eventData?.id;
   const session = isOldFormat
     ? config?.sessions?.[0]
     : config?.sessions?.find(s => s.id === reservation.session_id);
-
   const sessionName = session
     ? `${session.event_name} - ${formatTime(session.time)}`
     : 'Sesión única';
 
   let message;
-
   if (action === 'cancelada') {
     message = `❌ *CANCELACIÓN - ${eventName}* ❌
 
@@ -159,8 +154,11 @@ Si tienes alguna duda, contáctanos.
 *${cyclingRoom}*`;
   }
 
-  const encodedMessage = encodeURIComponent(message);
-  const whatsappUrl = `https://wa.me/${customerPhone}?text=${encodedMessage}`;
+  return `https://wa.me/${customerPhone}?text=${encodeURIComponent(message)}`;
+};
 
-  window.open(whatsappUrl, '_blank');
+// Mantener compatibilidad con código existente
+export const sendAdminWhatsAppMessage = (reservation, action, eventData, config) => {
+  const url = buildAdminWhatsAppUrl(reservation, action, eventData, config);
+  window.open(url, '_blank');
 };
