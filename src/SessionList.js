@@ -149,11 +149,12 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
                                 flexDirection: 'column',
                                 gap: '12px'
                             }}>
-                                {/* Header: Name, Price, and Time */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                                {/* Header: Name + Price arriba, chips abajo */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                                    {/* Columna izquierda: nombre + chips */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: 0 }}>
                                         <h3 style={{
-                                            fontSize: '16px', // Smaller font size
+                                            fontSize: '16px',
                                             fontWeight: '800',
                                             margin: 0,
                                             color: '#fff',
@@ -162,32 +163,32 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
                                         }}>
                                             {session.event_name || session.name}
                                         </h3>
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            color: '#94a3b8',
-                                            fontSize: '13px',
-                                            background: 'rgba(255,255,255,0.05)',
-                                            padding: '2px 6px',
-                                            borderRadius: '4px'
-                                        }}>
-                                            <MdAccessTime size={14} style={{ color: primaryColor }} />
-                                            <span>{formatTime(session.time)}</span>
-                                        </div>
-                                        {session.date && (
+                                        {/* Chips: hora y fecha en la misma fila debajo del nombre */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                             <div style={{
                                                 display: 'flex', alignItems: 'center', gap: '4px',
-                                                color: '#94a3b8', fontSize: '13px',
+                                                color: '#94a3b8', fontSize: '12px',
                                                 background: 'rgba(255,255,255,0.05)',
-                                                padding: '2px 6px', borderRadius: '4px'
+                                                padding: '3px 8px', borderRadius: '6px'
                                             }}>
-                                                <MdOutlineCalendarToday size={12} style={{ color: primaryColor }} />
-                                                <span>{new Date(session.date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+                                                <MdAccessTime size={13} style={{ color: primaryColor }} />
+                                                <span>{formatTime(session.time)}</span>
                                             </div>
-                                        )}
+                                            {session.date && (
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                                    color: '#94a3b8', fontSize: '12px',
+                                                    background: 'rgba(255,255,255,0.05)',
+                                                    padding: '3px 8px', borderRadius: '6px'
+                                                }}>
+                                                    <MdOutlineCalendarToday size={12} style={{ color: primaryColor }} />
+                                                    <span>{new Date(session.date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
+                                    {/* Precio — alineado arriba a la derecha */}
                                     {(() => {
                                         const validRowPrices = (session.rowPrices || []).map(p => parseFloat(p)).filter(p => !isNaN(p) && p > 0);
                                         const hasRowPrices = validRowPrices.length > 0;
@@ -198,14 +199,15 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
                                             <div style={{
                                                 background: 'rgba(34, 197, 94, 0.15)',
                                                 color: '#4ade80',
-                                                padding: '4px 8px',
+                                                padding: '4px 10px',
                                                 borderRadius: '6px',
                                                 fontSize: '13px',
                                                 fontWeight: '700',
                                                 whiteSpace: 'nowrap',
-                                                border: '1px solid rgba(34, 197, 94, 0.2)'
+                                                border: '1px solid rgba(34, 197, 94, 0.2)',
+                                                flexShrink: 0
                                             }}>
-                                                {hasRowPrices ? `Desde $${minPrice}` : session.price}
+                                                {hasRowPrices ? `Desde $${minPrice}` : `$${session.price}`}
                                             </div>
                                         );
                                     })()}
