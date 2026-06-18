@@ -207,7 +207,7 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
                                                 border: '1px solid rgba(34, 197, 94, 0.2)',
                                                 flexShrink: 0
                                             }}>
-                                                {hasRowPrices ? `Desde $${minPrice}` : `$${session.price}`}
+                                                {hasRowPrices ? `Desde $${minPrice}` : session.price}
                                             </div>
                                         );
                                     })()}
