@@ -61,7 +61,13 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
                         </h1>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '13px' }}>
                             <MdOutlineCalendarToday size={13} />
-                            <span>{event.start_date ? new Date(event.start_date).toLocaleDateString() : 'Fecha por confirmar'}</span>
+                            <span>{(() => {
+                                const fmt = (d) => new Date(d).toLocaleDateString();
+                                if (event.start_date && event.end_date && event.start_date.slice(0,10) !== event.end_date.slice(0,10)) {
+                                    return `${fmt(event.start_date)} – ${fmt(event.end_date)}`;
+                                }
+                                return event.start_date ? fmt(event.start_date) : 'Fecha por confirmar';
+                            })()}</span>
                         </div>
                     </div>
                 </div>
@@ -169,6 +175,17 @@ function SessionList({ event, onSelectSession, onShowAdmin }) {
                                             <MdAccessTime size={14} style={{ color: primaryColor }} />
                                             <span>{formatTime(session.time)}</span>
                                         </div>
+                                        {session.date && (
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: '4px',
+                                                color: '#94a3b8', fontSize: '13px',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                padding: '2px 6px', borderRadius: '4px'
+                                            }}>
+                                                <MdOutlineCalendarToday size={12} style={{ color: primaryColor }} />
+                                                <span>{new Date(session.date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {(() => {

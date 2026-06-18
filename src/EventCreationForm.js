@@ -1072,32 +1072,41 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                             />
                                         </div>
 
-                                        <div style={{ marginBottom: '12px' }}>
-                                            <label style={{
-                                                display: 'block',
-                                                color: '#94a3b8',
-                                                marginBottom: '6px',
-                                                fontSize: '12px',
-                                                fontWeight: '500'
-                                            }}>
-                                                Hora
-                                            </label>
-                                            <input
-                                                type="time"
-                                                value={session.time}
-                                                onChange={(e) => handleSessionChange(index, 'time', e.target.value)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px 12px',
-                                                    background: 'rgba(255,255,255,0.05)',
-                                                    border: '1px solid rgba(255,255,255,0.1)',
-                                                    borderRadius: '8px',
-                                                    color: '#fff',
-                                                    fontSize: '14px',
-                                                    boxSizing: 'border-box',
-                                                    outline: 'none'
-                                                }}
-                                            />
+                                        <div style={{ marginBottom: '12px', display: 'flex', gap: '10px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '6px', fontSize: '12px', fontWeight: '500' }}>
+                                                    Hora
+                                                </label>
+                                                <input
+                                                    type="time"
+                                                    value={session.time}
+                                                    onChange={(e) => handleSessionChange(index, 'time', e.target.value)}
+                                                    style={{
+                                                        width: '100%', padding: '10px 12px',
+                                                        background: 'rgba(255,255,255,0.05)',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        borderRadius: '8px', color: '#fff',
+                                                        fontSize: '14px', boxSizing: 'border-box', outline: 'none'
+                                                    }}
+                                                />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <label style={{ display: 'block', color: '#94a3b8', marginBottom: '6px', fontSize: '12px', fontWeight: '500' }}>
+                                                    Fecha (opcional)
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    value={session.date || ''}
+                                                    onChange={(e) => handleSessionChange(index, 'date', e.target.value)}
+                                                    style={{
+                                                        width: '100%', padding: '10px 12px',
+                                                        background: 'rgba(255,255,255,0.05)',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        borderRadius: '8px', color: '#fff',
+                                                        fontSize: '14px', boxSizing: 'border-box', outline: 'none'
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div>

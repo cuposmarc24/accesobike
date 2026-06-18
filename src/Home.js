@@ -314,7 +314,13 @@ function Home({ onSelectSession, onShowAdmin, onShowSuperAdmin, eventSlug }) {
                                                     color: '#0f172a',
                                                     letterSpacing: '0.05em'
                                                 }}>
-                                                    {event.start_date ? new Date(event.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase() : 'FECHA TBD'}
+                                                    {(() => {
+                                                        const fmt = (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
+                                                        if (event.start_date && event.end_date && event.start_date.slice(0,10) !== event.end_date.slice(0,10)) {
+                                                            return `${fmt(event.start_date)} – ${fmt(event.end_date)}`;
+                                                        }
+                                                        return event.start_date ? fmt(event.start_date) : 'FECHA TBD';
+                                                    })()}
                                                 </span>
                                             </div>
                                             <h3 style={{
