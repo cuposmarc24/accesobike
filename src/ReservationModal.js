@@ -1,79 +1,58 @@
 import { useState, useEffect, useRef } from 'react';
-import { MdPerson, MdPhone, MdCreditCard, MdCalendarToday, MdAttachMoney, MdTag, MdImage, MdCheckCircle } from 'react-icons/md';
+import { MdPerson, MdPhone, MdCreditCard, MdCalendarToday, MdTag, MdOutlineAddPhotoAlternate, MdCheckCircle, MdClose } from 'react-icons/md';
 import { supabase } from './lib/supabase';
-
-/* ─── Estilos globales de tipografía ─── */
-const font = "'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif";
+import { themeVars } from './lib/theme';
+import BottomSheet from './BottomSheet';
 
 /* ─── Campo de texto reutilizable ─── */
-const Field = ({ label, icon: Icon, placeholder, type = 'text', name, value, onChange, hint, primaryColor, maxLength, required }) => {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div style={{ marginBottom: '14px' }}>
-      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font }}>
-          {label}{required && <span style={{ color: '#ef4444', marginLeft: '2px' }}>*</span>}
-        </span>
-        {hint && <span style={{ fontSize: '10px', color: focused ? '#94a3b8' : '#475569', fontFamily: font }}>{hint}</span>}
-      </label>
-      <div style={{ position: 'relative' }}>
-        {Icon && (
-          <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: focused ? primaryColor : '#475569', transition: 'color 0.2s' }}>
-            <Icon size={16} />
-          </div>
-        )}
-        <input
-          type={type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          maxLength={maxLength}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={{
-            width: '100%',
-            padding: `11px 12px 11px ${Icon ? '36px' : '12px'}`,
-            borderRadius: '10px',
-            border: `1.5px solid ${focused ? primaryColor + '80' : 'rgba(255,255,255,0.08)'}`,
-            background: focused ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)',
-            color: '#e2e8f0',
-            fontSize: '14px',
-            fontFamily: font,
-            fontWeight: '500',
-            boxSizing: 'border-box',
-            outline: 'none',
-            transition: 'border 0.2s, background 0.2s',
-            caretColor: primaryColor
-          }}
-        />
-      </div>
+const Field = ({ label, icon: Icon, adornment, placeholder, type = 'text', name, value, onChange, hint, maxLength, required, inputMode, status, help, wide }) => (
+  <div className="ab-field">
+    <label className="ab-label" htmlFor={`ab-${name}`}>
+      <span>{label}{required && <span className="ab-req" aria-hidden="true">*</span>}</span>
+      {hint && <span className="ab-label__hint">{hint}</span>}
+    </label>
+    <div className="ab-input-wrap">
+      {(Icon || adornment) && (
+        <span className="ab-input-icon" aria-hidden="true">{Icon ? <Icon size={18} /> : adornment}</span>
+      )}
+      <input
+        id={`ab-${name}`}
+        className={`ab-input${status ? ` is-${status}` : ''}${wide ? ' ab-input--wide' : ''}`}
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        inputMode={inputMode}
+        required={required}
+        style={!Icon && !adornment ? { paddingLeft: 14 } : undefined}
+      />
     </div>
-  );
-};
+    {help}
+  </div>
+);
 
-/* ─── Alert personalizado ─── */
-const ModalAlert = ({ msg, onClose, primaryColor, backgroundColor }) => {
+/* ─── Aviso de error ─── */
+const ModalAlert = ({ msg, onClose, theme }) => {
   if (!msg) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '24px' }}>
-      <div style={{ background: backgroundColor, borderRadius: '20px', padding: '32px 24px', maxWidth: '320px', width: '100%', border: `1.5px solid ${primaryColor}40`, boxShadow: `0 24px 60px rgba(0,0,0,0.7)`, textAlign: 'center', fontFamily: font }}>
-        <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#ef444420', border: '1.5px solid #ef444450', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <div className="ab-scope ab-dialog-root" style={{ ...themeVars(theme), zIndex: 9999 }} onClick={onClose}>
+      <div className="ab-dialog" role="alertdialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+        <div className="ab-dialog__icon ab-dialog__icon--danger">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         </div>
-        <p style={{ color: '#e2e8f0', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px', fontFamily: font, whiteSpace: 'pre-line' }}>{msg}</p>
-        <button onClick={onClose} style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: backgroundColor, border: 'none', borderRadius: '12px', padding: '12px 32px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: font, width: '100%' }}>
-          Entendido
-        </button>
+        <p className="ab-dialog__text">{msg}</p>
+        <button type="button" className="ab-btn ab-btn--primary ab-btn--block" onClick={onClose} autoFocus>Entendido</button>
       </div>
     </div>
   );
 };
 
 /* ─── Componente Principal ─── */
-function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm, primaryColor = '#13c8ec', secondaryColor = '#1a2c30', backgroundColor = '#111f22', eventId, sessionId }) {
+function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm, primaryColor = '#13c8ec', backgroundColor = '#111f22', eventId }) {
   const [formData, setFormData] = useState({ cedula: '', nombre: '', apellido: '', telefono: '' });
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [rateConfig, setRateConfig] = useState(null);
@@ -249,333 +228,153 @@ function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm
     ? formData.telefono.replace(/[^\d]/g, '') // solo dígitos, sin +
     : null;
 
+  const theme = { primaryColor, backgroundColor };
+  const seatNumber = seat?.seat_number != null ? String(seat.seat_number).padStart(2, '0') : '–';
+  const isBs = selectedMethod && ['BS', 'Bs', 'VES'].includes(selectedMethod.currency);
+  const priceUSD = sessionPrice ? parseFloat(String(sessionPrice).replace(/[^0-9.]/g, '')) : NaN;
+
   return (
     <>
-    <ModalAlert msg={alertMsg} onClose={() => setAlertMsg('')} primaryColor={primaryColor} backgroundColor={backgroundColor} />
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.75)',
-      backdropFilter: 'blur(6px)',
-      display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-      zIndex: 1000,
-      padding: '16px',
-      overflowY: 'auto'
-    }}>
-      <div style={{
-        background: backgroundColor,
-        borderRadius: '20px',
-        width: '100%',
-        maxWidth: '400px',
-        marginTop: '16px',
-        marginBottom: '16px',
-        border: `1.5px solid ${primaryColor}40`,
-        boxShadow: `0 24px 60px rgba(0,0,0,0.6)`,
-        fontFamily: font,
-        overflow: 'hidden'
-      }}>
-
-        {/* ── Header ── */}
-        <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: primaryColor, letterSpacing: '-0.4px', fontFamily: font }}>
-            Reservar Asiento
-          </h2>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b', fontFamily: font }}>
-            Bici #{seat?.seat_number} · {rodada?.event_name || 'Evento'}
-          </p>
-        </div>
-
-        <div style={{ padding: '20px 24px 24px' }}>
-
-          {/* ── Sección: Datos personales ── */}
-          <p style={{ fontSize: '10px', fontWeight: '700', color: '#475569', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 12px', fontFamily: font }}>
-            Datos del reservante
-          </p>
-
-          <Field label="Cédula" name="cedula" icon={MdCreditCard} placeholder="Ej: V-12345678" value={formData.cedula} onChange={handleInput} primaryColor={primaryColor} required />
-          <Field label="Nombre" name="nombre" icon={MdPerson} placeholder="Tu nombre" value={formData.nombre} onChange={handleInput} primaryColor={primaryColor} required />
-          <Field label="Apellido" name="apellido" icon={MdPerson} placeholder="Tu apellido" value={formData.apellido} onChange={handleInput} primaryColor={primaryColor} required />
-
-          {/* Teléfono con counter y preview WhatsApp */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-              <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font }}>
-                WhatsApp <span style={{ color: '#ef4444' }}>*</span>
-              </span>
-              <span style={{ fontSize: '10px', fontWeight: '700', color: phoneWarn ? '#ef4444' : phoneOk ? '#22c55e' : '#475569', fontFamily: font }}>
-                {phoneLength}/10 {phoneOk ? '✓' : ''}
-              </span>
-            </label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: phoneWarn ? '#ef4444' : '#475569' }}>
-                <MdPhone size={16} />
-              </div>
-              <input
-                type="tel" name="telefono" value={formData.telefono} onChange={handleInput}
-                placeholder="+58 4121234567 o 04121234567" maxLength={16}
-                style={{
-                  width: '100%', padding: '11px 12px 11px 36px', borderRadius: '10px', boxSizing: 'border-box',
-                  border: `1.5px solid ${phoneWarn ? '#ef444460' : phoneOk ? '#22c55e40' : 'rgba(255,255,255,0.08)'}`,
-                  background: 'rgba(255,255,255,0.03)', color: '#e2e8f0', fontSize: '14px',
-                  fontFamily: font, fontWeight: '500', outline: 'none'
-                }}
-              />
+      <ModalAlert msg={alertMsg} onClose={() => setAlertMsg('')} theme={theme} />
+      <BottomSheet
+        theme={theme}
+        onClose={handleClose}
+        ariaLabel={`Reservar bici ${seatNumber}`}
+        header={(close) => (
+          <div className="ab-sheet-head">
+            <div className="ab-seat-badge ab-display" aria-hidden="true">{seatNumber}</div>
+            <div className="ab-sheet-head__text">
+              <h2 className="ab-sheet-title">Reservar bici {seatNumber}</h2>
+              <p className="ab-sheet-sub">{session?.event_name || session?.name || rodada?.event_name || 'Evento'}</p>
             </div>
-            {phoneWarn && (
-              <p style={{ margin: '4px 0 0 2px', fontSize: '11px', color: '#ef4444', fontFamily: font }}>
-                Mínimo 10 dígitos. Incluye código de país si es internacional (ej: +1, +34)
-              </p>
-            )}
-            {whatsappPreview && (
-              <p style={{ margin: '4px 0 0 2px', fontSize: '11px', color: '#22c55e', fontFamily: font, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span>✓</span>
-                <span>wa.me/<strong>{whatsappPreview}</strong></span>
-              </p>
-            )}
+            <button type="button" className="ab-icon-btn" onClick={close} aria-label="Cerrar">
+              <MdClose size={20} />
+            </button>
           </div>
+        )}
+        footer={(close) => (
+          <>
+            <button type="button" className="ab-btn ab-btn--ghost" style={{ flex: 1 }} onClick={close}>Cancelar</button>
+            <button type="button" className="ab-btn ab-btn--primary" style={{ flex: 2 }} onClick={handleReserve}>
+              <MdCheckCircle size={20} />
+              Confirmar reserva
+            </button>
+          </>
+        )}
+      >
+        {/* ── Datos personales ── */}
+        <h3 className="ab-group-title">Tus datos</h3>
 
-          {/* ── Sección: Pago ── */}
-          {paymentMethods.length > 0 && (
-            <>
-              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '4px 0 18px' }} />
-              <p style={{ fontSize: '10px', fontWeight: '700', color: '#475569', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px', fontFamily: font }}>
-                Método de pago
-              </p>
+        <Field label="Cédula" name="cedula" icon={MdCreditCard} placeholder="V-12345678" inputMode="numeric"
+          value={formData.cedula} onChange={handleInput} required />
+        <Field label="Nombre" name="nombre" icon={MdPerson} placeholder="Tu nombre"
+          value={formData.nombre} onChange={handleInput} required />
+        <Field label="Apellido" name="apellido" icon={MdPerson} placeholder="Tu apellido"
+          value={formData.apellido} onChange={handleInput} required />
+        <Field
+          label="WhatsApp" name="telefono" icon={MdPhone} type="tel" inputMode="tel"
+          placeholder="04121234567 o +58 4121234567" maxLength={16}
+          value={formData.telefono} onChange={handleInput} required
+          hint={<span className="ab-num" style={{ color: phoneWarn ? 'var(--ab-danger)' : phoneOk ? 'var(--ab-ok)' : undefined }}>{phoneLength}/10</span>}
+          status={phoneWarn ? 'error' : phoneOk ? 'ok' : null}
+          help={phoneWarn ? (
+            <p className="ab-help ab-help--error">Mínimo 10 dígitos. Si es internacional, incluye el código de país (ej: +1, +34).</p>
+          ) : whatsappPreview ? (
+            <p className="ab-help ab-help--ok">Te escribiremos a wa.me/<strong>{whatsappPreview}</strong></p>
+          ) : null}
+        />
 
-              {/* Selección de método */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                {paymentMethods.map(pm => {
-                  const isActive = selectedMethod?.id === pm.id;
-                  return (
-                    <div
-                      key={pm.id}
-                      onClick={() => setSelectedMethod(pm)}
-                      style={{
-                        borderRadius: '12px',
-                        border: `1.5px solid ${isActive ? primaryColor + '80' : 'rgba(255,255,255,0.07)'}`,
-                        background: isActive ? `${primaryColor}0D` : 'rgba(255,255,255,0.02)',
-                        padding: '12px 14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.18s',
-                        display: 'flex', alignItems: 'flex-start', gap: '12px'
-                      }}
-                    >
-                      {/* Radio */}
-                      <div style={{
-                        width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0, marginTop: '1px',
-                        border: `2px solid ${isActive ? primaryColor : 'rgba(255,255,255,0.2)'}`,
-                        background: isActive ? primaryColor : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.15s'
-                      }}>
-                        {isActive && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: backgroundColor }} />}
+        {/* ── Pago ── */}
+        {paymentMethods.length > 0 && (
+          <>
+            <hr className="ab-divider" />
+            <h3 className="ab-group-title">¿Cómo vas a pagar?</h3>
+
+            <div className="ab-options" role="radiogroup" aria-label="Método de pago">
+              {paymentMethods.map(pm => {
+                const isActive = selectedMethod?.id === pm.id;
+                return (
+                  <div
+                    key={pm.id}
+                    role="radio"
+                    aria-checked={isActive}
+                    tabIndex={0}
+                    className={`ab-option${isActive ? ' is-active' : ''}`}
+                    onClick={() => setSelectedMethod(pm)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedMethod(pm); } }}
+                  >
+                    <span className="ab-radio" aria-hidden="true" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="ab-option__top">
+                        <span className="ab-option__name">{pm.name}</span>
+                        {pm.currency && <span className="ab-tag">{pm.currency}</span>}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
-                          <span style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '700', fontFamily: font }}>{pm.name}</span>
-                          <span style={{
-                            fontSize: '10px', fontWeight: '700', color: primaryColor,
-                            background: `${primaryColor}18`, border: `1px solid ${primaryColor}30`,
-                            borderRadius: '20px', padding: '1px 7px', fontFamily: font
-                          }}>{pm.currency}</span>
-                        </div>
-                        {pm.description && (
-                          <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748b', fontFamily: font, lineHeight: '1.4', whiteSpace: 'pre-line' }}>{pm.description}</p>
-                        )}
-                      </div>
+                      {pm.description && <p className="ab-option__desc">{pm.description}</p>}
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
+            </div>
+
+            {sessionPrice && !isNaN(priceUSD) && (
+              <div className="ab-total">
+                <span className="ab-total__label">Total a pagar</span>
+                <span className="ab-total__value">
+                  ${priceUSD.toFixed(2)}
+                  {isBs && convertToBs(sessionPrice) && (
+                    <span className="ab-total__alt">≈ Bs {convertToBs(sessionPrice)}</span>
+                  )}
+                </span>
               </div>
+            )}
 
-              {/* Indicador de monto a pagar - junto a métodos de pago */}
-              {sessionPrice && (
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font }}>
-                    A pagar:
-                  </span>
-                  {/* Precio en USD */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '5px',
-                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '8px', padding: '5px 10px'
-                  }}>
-                    <span style={{ fontSize: '10px', color: '#64748b', fontFamily: font, fontWeight: '600' }}>USD</span>
-                    <span style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: '800', fontFamily: font }}>
-                      ${parseFloat(String(sessionPrice).replace(/[^0-9.]/g, '')).toFixed(2)}
-                    </span>
-                  </div>
+            {selectedMethod && (
+              <>
+                <h3 className="ab-group-title">Datos del pago</h3>
 
-                  {/* Conversión Bs - solo cuando el método seleccionado es en Bs */}
-                  {selectedMethod && (selectedMethod.currency === 'BS' || selectedMethod.currency === 'Bs' || selectedMethod.currency === 'VES') && convertToBs(sessionPrice) && (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', color: '#475569', fontSize: '12px' }}>≈</div>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '5px',
-                        background: `${primaryColor}12`, border: `1px solid ${primaryColor}30`,
-                        borderRadius: '8px', padding: '5px 10px'
-                      }}>
-                        <span style={{ fontSize: '10px', color: primaryColor, fontFamily: font, fontWeight: '600' }}>BS</span>
-                        <span style={{ fontSize: '14px', color: primaryColor, fontWeight: '800', fontFamily: font }}>
-                          {convertToBs(sessionPrice)}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
+                <Field
+                  label="Monto pagado" name="monto" inputMode="numeric" placeholder="0,00" required
+                  adornment={currencySymbol(selectedMethod?.currency)}
+                  value={formatMontoVE(paymentData.monto)} onChange={handlePaymentInput}
+                />
 
-              {/* Campos del pago */}
-              {selectedMethod && (
-                <div style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: '14px',
-                  padding: '16px',
-                  marginBottom: '4px'
-                }}>
-                  <p style={{ margin: '0 0 12px', fontSize: '10px', fontWeight: '700', color: '#475569', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: font }}>
-                    Datos de pago
-                  </p>
+                <Field label="Fecha del pago" name="fecha" icon={MdCalendarToday} type="date" required
+                  value={paymentData.fecha} onChange={handlePaymentInput} />
 
-                  {/* ── Monto con indicador de moneda ── */}
-                  <div style={{ marginBottom: '14px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font, display: 'block', marginBottom: '6px' }}>
-                      Monto <span style={{ color: '#ef4444' }}>*</span>
-                    </span>
+                {selectedMethod.requires_reference && (
+                  <Field
+                    label="Referencia" name="referencia" icon={MdTag} hint="Últimos 6 dígitos"
+                    inputMode="numeric" placeholder="123456" maxLength={6} required wide
+                    value={paymentData.referencia} onChange={handlePaymentInput}
+                  />
+                )}
 
-                    {/* Input con símbolo de la moneda del método */}
-                    <div style={{ position: 'relative' }}>
-                      <div style={{
-                        position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-                        color: primaryColor, fontSize: '13px', fontWeight: '800', fontFamily: font,
-                        pointerEvents: 'none', userSelect: 'none'
-                      }}>
-                        {currencySymbol(selectedMethod?.currency)}
-                      </div>
-                      <style>{`
-                        .ab-monto-input::placeholder { color: #475569; font-weight: 400; }
-                      `}</style>
-                      <input
-                        className="ab-monto-input"
-                        type="text" inputMode="numeric"
-                        name="monto"
-                        value={formatMontoVE(paymentData.monto)}
-                        onChange={handlePaymentInput}
-                        placeholder="0,00"
-                        style={{
-                          width: '100%', padding: '11px 12px 11px 36px', borderRadius: '10px', boxSizing: 'border-box',
-                          border: `1.5px solid rgba(255,255,255,0.08)`, background: 'rgba(255,255,255,0.03)',
-                          color: '#e2e8f0', fontSize: '14px', fontFamily: font, fontWeight: '600',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Fecha */}
-                  <Field label="Fecha de pago" name="fecha" icon={MdCalendarToday}
-                    type="date" placeholder=""
-                    value={paymentData.fecha} onChange={handlePaymentInput} primaryColor={primaryColor} required />
-
-                  {/* Referencia — solo si requerida, solo 6 dígitos */}
-                  {selectedMethod.requires_reference && (
-                    <div style={{ marginBottom: '14px' }}>
-                      <label style={{ display: 'block', marginBottom: '5px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: font }}>
-                          Referencia <span style={{ color: '#94a3b8', fontWeight: '500', textTransform: 'none', letterSpacing: 0, fontSize: '10px' }}>(últimos 6 dígitos)</span> <span style={{ color: '#ef4444' }}>*</span>
-                        </span>
-                      </label>
-                      <div style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>
-                          <MdTag size={16} />
-                        </div>
-                        <input
-                          type="text" inputMode="numeric" pattern="[0-9]*"
-                          name="referencia" value={paymentData.referencia} onChange={handlePaymentInput}
-                          placeholder="123456" maxLength={6}
-                          style={{
-                            width: '100%', padding: '11px 12px 11px 36px', borderRadius: '10px', boxSizing: 'border-box',
-                            border: `1.5px solid rgba(255,255,255,0.08)`, background: 'rgba(255,255,255,0.03)',
-                            color: '#e2e8f0', fontSize: '14px', fontFamily: font, fontWeight: '600',
-                            outline: 'none', letterSpacing: '0.1em'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Captura */}
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '6px', fontFamily: font }}>
-                      Comprobante / Captura
-                    </label>
-                    <input ref={fileRef} type="file" accept="image/*" onChange={handleCapture} style={{ display: 'none' }} />
-
-                    {capturePreview ? (
-                      <div style={{ position: 'relative' }}>
-                        <img src={capturePreview} alt="Comprobante" style={{ width: '100%', borderRadius: '10px', maxHeight: '160px', objectFit: 'cover', border: `1px solid ${primaryColor}40` }} />
-                        <button
-                          onClick={() => { setCaptureFile(null); setCapturePreview(null); fileRef.current.value = ''; }}
-                          style={{
-                            position: 'absolute', top: '6px', right: '6px',
-                            background: 'rgba(0,0,0,0.7)', color: '#ef4444',
-                            border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px',
-                            padding: '3px 8px', fontSize: '11px', cursor: 'pointer', fontFamily: font
-                          }}>✕ Quitar</button>
-                      </div>
-                    ) : (
+                <div className="ab-field" style={{ marginBottom: 0 }}>
+                  <span className="ab-label">Comprobante</span>
+                  <input ref={fileRef} type="file" accept="image/*" onChange={handleCapture} style={{ display: 'none' }} />
+                  {capturePreview ? (
+                    <div className="ab-proof">
+                      <img src={capturePreview} alt="Comprobante de pago" />
                       <button
-                        onClick={() => fileRef.current.click()}
-                        style={{
-                          width: '100%', padding: '12px',
-                          borderRadius: '10px',
-                          border: `1.5px dashed ${primaryColor}40`,
-                          background: 'transparent',
-                          color: '#64748b', fontSize: '13px', fontWeight: '500',
-                          cursor: 'pointer', fontFamily: font,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                        }}
+                        type="button"
+                        className="ab-btn"
+                        onClick={() => { setCaptureFile(null); setCapturePreview(null); fileRef.current.value = ''; }}
                       >
-                        <MdImage size={18} color={primaryColor} />
-                        Subir captura / foto del comprobante
+                        Quitar
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <button type="button" className="ab-drop" onClick={() => fileRef.current.click()}>
+                      <MdOutlineAddPhotoAlternate size={26} aria-hidden="true" />
+                      Subir captura del pago
+                    </button>
+                  )}
                 </div>
-              )}
-            </>
-          )}
-
-          {/* ── Botones ── */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button onClick={handleClose} style={{
-              flex: 1, padding: '13px', borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'transparent', color: '#64748b',
-              fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: font,
-              transition: 'all 0.15s'
-            }}
-              onMouseOver={e => { e.target.style.background = 'rgba(255,255,255,0.05)'; e.target.style.color = '#94a3b8'; }}
-              onMouseOut={e => { e.target.style.background = 'transparent'; e.target.style.color = '#64748b'; }}
-            >
-              Cancelar
-            </button>
-            <button onClick={handleReserve} style={{
-              flex: 2, padding: '13px', borderRadius: '10px',
-              border: 'none',
-              background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-              color: backgroundColor, fontSize: '14px', fontWeight: '800',
-              cursor: 'pointer', fontFamily: font,
-              boxShadow: `0 4px 20px ${primaryColor}40`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-            }}>
-              <MdCheckCircle size={18} />
-              Confirmar Reserva
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+              </>
+            )}
+          </>
+        )}
+      </BottomSheet>
     </>
   );
 }

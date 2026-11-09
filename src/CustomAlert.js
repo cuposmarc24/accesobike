@@ -1,94 +1,34 @@
-import { useState } from 'react';
-
-const font = "'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif";
+import BottomSheet from './BottomSheet';
 
 function CustomAlert({ isOpen, onAccept, primaryColor = '#13c8ec', backgroundColor = '#111f22' }) {
   if (!isOpen) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0,0,0,0.8)',
-      backdropFilter: 'blur(6px)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 2000,
-      padding: '20px'
-    }}>
-      <div style={{
-        background: backgroundColor,           // Fondo oscuro de la CONFIG
-        borderRadius: '20px',
-        padding: '36px 28px',
-        maxWidth: '340px',
-        width: '100%',
-        border: `1.5px solid ${primaryColor}50`,  // Solo borde con el color config
-        boxShadow: `0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px ${primaryColor}15`,
-        textAlign: 'center',
-        fontFamily: font
-      }}>
-        {/* Ícono */}
-        <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '50%',
-          background: `${primaryColor}18`,
-          border: `1.5px solid ${primaryColor}40`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 20px'
-        }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <BottomSheet
+      theme={{ primaryColor, backgroundColor }}
+      dismissible={false}
+      zIndex={2000}
+      ariaLabel="Reserva por confirmar"
+      footer={
+        <button type="button" className="ab-btn ab-btn--primary ab-btn--block" onClick={onAccept} autoFocus>
+          Abrir WhatsApp
+        </button>
+      }
+    >
+      <div style={{ textAlign: 'center', padding: '8px 4px 4px' }}>
+        <div className="ab-dialog__icon ab-dialog__icon--ok" style={{ width: 64, height: 64 }}>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
         </div>
-
-        <h3 style={{
-          color: '#e2e8f0',
-          fontSize: '18px',
-          fontWeight: '800',
-          margin: '0 0 10px',
-          letterSpacing: '-0.3px',
-          fontFamily: font
-        }}>
+        <h3 className="ab-display" style={{ fontSize: 30, margin: '0 0 10px', textTransform: 'uppercase' }}>
           Reserva por confirmar
         </h3>
-
-        <p style={{
-          color: '#64748b',
-          fontSize: '14px',
-          margin: '0 0 28px',
-          lineHeight: '1.6',
-          fontFamily: font
-        }}>
-          Se abrirá WhatsApp para que puedas notificar tu pago al administrador.
+        <p style={{ margin: '0 auto', maxWidth: 320, fontSize: 15, lineHeight: 1.55, color: 'var(--ab-muted)' }}>
+          Abre WhatsApp y envía el mensaje para que el administrador confirme tu pago.
         </p>
-
-        <button
-          onClick={onAccept}
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-            color: backgroundColor,
-            border: 'none',
-            borderRadius: '12px',
-            padding: '13px 32px',
-            fontSize: '15px',
-            fontWeight: '800',
-            cursor: 'pointer',
-            fontFamily: font,
-            boxShadow: `0 6px 20px ${primaryColor}40`,
-            width: '100%',
-            transition: 'transform 0.15s, box-shadow 0.15s'
-          }}
-          onMouseOver={e => { e.target.style.transform = 'translateY(-1px)'; }}
-          onMouseOut={e => { e.target.style.transform = 'translateY(0)'; }}
-        >
-          Abrir WhatsApp
-        </button>
       </div>
-    </div>
+    </BottomSheet>
   );
 }
 

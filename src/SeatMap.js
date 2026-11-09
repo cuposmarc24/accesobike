@@ -9,6 +9,8 @@ import AuctionModal from './AuctionModal';
 import { sendAuctionWhatsAppMessage } from './auctionService';
 import { MdOutlineDirectionsBike } from "react-icons/md";
 import BikeLoader from './BikeLoader';
+import { Flyer } from './SessionList';
+import { themeVars } from './lib/theme';
 
 function SeatMap({ rodada, onBack, session }) {
   const { eventId: contextEventId, getSessionId, getSession, config } = useEventConfig();
@@ -254,138 +256,49 @@ function SeatMap({ rodada, onBack, session }) {
   }
 
   return (
-    <div style={{
+    <div className="ab-scope" style={{
+      ...themeVars(config?.theme),
       background: backgroundColor,
       minHeight: '100vh',
       width: '100%',
-      fontFamily: 'Inter, sans-serif',
-      color: '#fff',
       position: 'relative',
-      paddingBottom: selectedSeat ? '280px' : '40px',
-      boxSizing: 'border-box'
+      paddingBottom: selectedSeat ? '300px' : '40px'
     }}>
-      {/* 1. Header */}
-      <div style={{
-        padding: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(255,255,255,0.05)'
-      }}>
-        <div onClick={onBack} style={{ cursor: 'pointer', padding: '8px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
+      {/* 1. Cabecera */}
+      <header className="ab-topbar">
+        <button type="button" className="ab-icon-btn" onClick={onBack} aria-label="Volver a las rodadas">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>
+        </button>
+        <div className="ab-topbar__title">
+          <h1 className="ab-display">{currentSession?.event_name || currentSession?.name || rodada?.event_name || 'Rodada'}</h1>
+          <p>{currentSession?.cycling_room || rodada?.cycling_room || 'Elige tu bici'}</p>
         </div>
+        <div className="ab-topbar__spacer" />
+      </header>
 
-        {/* Updated Header Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              background: secondaryColor,
-              border: `2px solid ${primaryColor}`
-            }}>
-              {currentSession?.cycling_room_logo || rodada?.cycling_room_logo ? (
-                <img
-                  src={currentSession?.cycling_room_logo || rodada?.cycling_room_logo}
-                  alt="Room Logo"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>🚲</div>
-              )}
-            </div>
-            <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0, letterSpacing: '0.5px' }}>
-              {currentSession?.cycling_room || rodada?.cycling_room || 'Sala Principal'}
-            </h1>
-          </div>
-        </div>
-
-        <div style={{ padding: '8px', opacity: 0 }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
-        </div>
+      {/* Flyer completo, sin recorte */}
+      <div style={{ padding: '18px 16px 0', maxWidth: 420, margin: '0 auto' }}>
+        <Flyer compact src={session?.image || currentSession?.event_image || rodada?.event_image} alt="Flyer de la rodada" />
       </div>
 
-      {/* Event Flyer Card */}
-      <div style={{ padding: '20px 20px 0 20px', display: 'flex', justifyContent: 'center' }}>
-        <div style={{
-          width: '100%',
-          maxWidth: '300px',
-          height: '160px',
-          borderRadius: '20px',
-          overflow: 'hidden',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          position: 'relative'
-        }}>
-          <img
-            src={session?.image || currentSession?.event_image || rodada?.event_image || 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1470&auto=format&fit=crop'}
-            alt="Event Flyer"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </div>
-      </div>
-
-      {/* Aviso de precios por fila — solo si hay rowPrices configurados */}
-      {(() => {
-        const validRowPrices = (currentSession?.rowPrices || []).map(p => parseFloat(p)).filter(p => !isNaN(p) && p > 0);
-        if (validRowPrices.length === 0) return null;
-        const minPrice = Math.min(...validRowPrices);
-        const maxPrice = Math.max(...validRowPrices);
-        const hasRange = minPrice !== maxPrice;
-        return (
-          <div style={{ margin: '14px 20px 0', display: 'flex', justifyContent: 'center' }}>
-          <div style={{
-            padding: '7px 14px',
-            borderRadius: '20px',
-            background: `${primaryColor}12`,
-            border: `1px solid ${primaryColor}25`,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '7px'
-          }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-            </svg>
-            <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'Inter, sans-serif' }}>
-              Precio varía por fila:
+      {/* 2. Leyenda */}
+      <div className="ab-legend">
+        <span className="ab-chip"><span className="ab-chip__dot" style={{ background: 'var(--ab-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ab-line-strong)' }} />Disponible</span>
+        <span className="ab-chip"><span className="ab-chip__dot" style={{ background: secondaryColor }} />Ocupada</span>
+        <span className="ab-chip"><span className="ab-chip__dot" style={{ background: 'var(--ab-primary)' }} />Tu bici</span>
+        {(() => {
+          const validRowPrices = (currentSession?.rowPrices || []).map(p => parseFloat(p)).filter(p => !isNaN(p) && p > 0);
+          if (validRowPrices.length === 0) return null;
+          const minPrice = Math.min(...validRowPrices);
+          const maxPrice = Math.max(...validRowPrices);
+          return (
+            <span className="ab-chip" style={{ color: 'var(--ab-primary)', paddingLeft: 12 }}>
+              Precio por fila: {minPrice !== maxPrice ? `$${minPrice} – $${maxPrice}` : `$${minPrice}`}
             </span>
-            <span style={{ fontSize: '12px', fontWeight: '800', color: primaryColor, fontFamily: 'Inter, sans-serif' }}>
-              {hasRange ? `$${minPrice} – $${maxPrice}` : `$${minPrice}`}
-            </span>
-          </div>
-          </div>
-        );
-      })()}
-
-      {/* 2. Legend */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '24px',
-        padding: '20px 0',
-        fontSize: '12px',
-        fontWeight: '600',
-        color: '#94a3b8',
-        textTransform: 'uppercase'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MdOutlineDirectionsBike size={18} color="#94a3b8" />
-          <span>Disponible</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MdOutlineDirectionsBike size={18} color="#424242" />
-          <span>Ocupado</span>
-        </div>
+          );
+        })()}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: primaryColor, fontSize: '12px', fontWeight: '700', textTransform: 'uppercase' }}>
-          <MdOutlineDirectionsBike size={18} color={primaryColor} />
-          <span>Tu Selección</span>
-        </div>
-      </div>
+      <div style={{ height: 24 }} />
 
       {/* 4. Stage & Monitor Row Area */}
       {(() => {
@@ -513,145 +426,48 @@ function SeatMap({ rodada, onBack, session }) {
         );
       })()}
 
-      {/* 5. Bottom Floating Card (Validation/Action) */}
-      {selectedSeat && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '16px',
-          right: '16px',
-          maxWidth: '380px',
-          margin: '0 auto',
-          background: backgroundColor,
-          backdropFilter: 'blur(20px)',
-          border: `1px solid ${primaryColor}30`,
-          borderRadius: '24px',
-          padding: '20px',
-          boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px ${primaryColor}15, 0 -4px 24px ${primaryColor}10`,
-          zIndex: 1000,
-          animation: 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
-        }}>
-          <style>{`@keyframes slideUp { from { transform: translateY(110%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
-
-          {/* Fila superior: info bici + botón X */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            {/* Ícono */}
-            <div style={{
-              width: '48px', height: '48px', borderRadius: '14px',
-              background: `${primaryColor}18`,
-              border: `1.5px solid ${primaryColor}35`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: primaryColor,
-              flexShrink: 0
-            }}>
-              <MdOutlineDirectionsBike size={24} />
+      {/* 5. Tarjeta de la bici seleccionada */}
+      {selectedSeat && (() => {
+        const num = String(selectedSeat.seat_number).padStart(2, '0');
+        // Precio por fila lleva $; el precio general se muestra tal cual se escribió
+        const priceLabel = rowPrice ? `$${rowPrice}` : (currentSession?.price || null);
+        return (
+          <div className="ab-pick" key={selectedSeat.id}>
+            <div className="ab-pick__row">
+              <div className="ab-pick__seat ab-display" aria-hidden="true">{num}</div>
+              <div className="ab-pick__info">
+                <span className="ab-pick__label">Tu bici</span>
+                <span className="ab-pick__name">Bici {num}</span>
+              </div>
+              {priceLabel && (
+                <div className="ab-pick__price">
+                  <span className="ab-pick__label">Precio</span>
+                  <span className="ab-stat__value">{priceLabel}</span>
+                </div>
+              )}
+              <button type="button" className="ab-icon-btn" onClick={() => setSelectedSeat(null)} aria-label="Quitar selección" style={{ width: 36, height: 36 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
             </div>
 
-            {/* Nombre y sesión */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: '#f1f5f9', fontFamily: "'Inter', sans-serif", lineHeight: 1.2 }}>
-                Bici #{selectedSeat.seat_number < 10 ? `0${selectedSeat.seat_number}` : selectedSeat.seat_number}
+            {rowNote && (
+              <div className="ab-pick__note">
+                <span aria-hidden="true">🎁</span>
+                <div>
+                  <strong>Incluido en tu reserva</strong>
+                  {rowNote}
+                </div>
               </div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px', fontFamily: "'Inter', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {currentSession ? currentSession.event_name : 'Clase de Spinning'}
-              </div>
-            </div>
+            )}
 
-            {/* Botón cerrar */}
-            <button
-              onClick={() => setSelectedSeat(null)}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '50%',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#94a3b8',
-                padding: 0,
-                flexShrink: 0,
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.14)'; e.currentTarget.style.color = '#fff'; }}
-              onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#94a3b8'; }}
-              title="Cancelar selección"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+            <button type="button" className="ab-btn ab-btn--primary ab-btn--block" onClick={() => setShowModal(true)}>
+              Reservar bici {num}
             </button>
           </div>
-
-          {/* Divider con precio */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: `${primaryColor}0d`,
-            border: `1px solid ${primaryColor}20`,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            marginBottom: rowNote ? '10px' : '14px'
-          }}>
-            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: "'Inter', sans-serif" }}>
-              Precio
-            </span>
-            <span style={{ fontSize: '18px', fontWeight: '900', color: primaryColor, fontFamily: "'Inter', sans-serif" }}>
-              {selectedSeatPrice ? `$${selectedSeatPrice}` : 'Consultar'}
-            </span>
-          </div>
-
-          {/* Nota de fila */}
-          {rowNote && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '8px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '10px',
-              padding: '9px 12px',
-              marginBottom: '14px'
-            }}>
-              <div style={{ flexShrink: 0, marginTop: '1px' }}>🎁</div>
-              <div>
-                <span style={{ fontSize: '10px', fontWeight: '700', color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '3px' }}>
-                  Incluido en tu reserva
-                </span>
-                <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: "'Inter', sans-serif", lineHeight: 1.6, whiteSpace: 'pre-line', display: 'block' }}>
-                  {rowNote}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Botón reservar */}
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              width: '100%',
-              background: 'transparent',
-              color: primaryColor,
-              border: `1.5px solid ${primaryColor}`,
-              borderRadius: '14px',
-              padding: '14px',
-              fontSize: '14px',
-              fontWeight: '800',
-              cursor: 'pointer',
-              fontFamily: "'Inter', sans-serif",
-              letterSpacing: '0.03em',
-              transition: 'background 0.2s'
-            }}
-            onMouseOver={e => { e.currentTarget.style.background = `${primaryColor}15`; }}
-            onMouseOut={e => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            Reservar Ahora
-          </button>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Modales (se mantienen igual lógica pero ocultos/mostrados) */}
       {showModal && (
