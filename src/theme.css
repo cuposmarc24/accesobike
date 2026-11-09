@@ -977,3 +977,43 @@ select.ab-input option { background: var(--ab-bg); color: var(--ab-text); }
 .ab-login { max-width: 400px; margin: 0 auto; padding: 20px 16px 40px; }
 .ab-login h2 { margin: 24px 0 6px; font-size: 30px; text-align: center; text-transform: uppercase; }
 .ab-login > p { margin: 0 0 24px; text-align: center; color: var(--ab-muted); font-size: 15px; }
+
+/* ─── Texto de los campos siempre visible ───────────────────
+   El autocompletado del celular (usuario/contraseña guardados) pinta el
+   fondo claro y dejaba el texto blanco invisible. Forzamos fondo y texto. */
+.ab-input,
+.ab-textarea {
+  -webkit-text-fill-color: var(--ab-text);
+}
+.ab-input:-webkit-autofill,
+.ab-input:-webkit-autofill:hover,
+.ab-input:-webkit-autofill:focus,
+.ab-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--ab-text) !important;
+  caret-color: var(--ab-primary);
+  -webkit-box-shadow: 0 0 0 1000px var(--ab-surface-2) inset !important;
+  box-shadow: 0 0 0 1000px var(--ab-surface-2) inset !important;
+  transition: background-color 99999s ease-out 0s;
+}
+.ab-input:autofill {
+  -webkit-text-fill-color: var(--ab-text) !important;
+  box-shadow: 0 0 0 1000px var(--ab-surface-2) inset !important;
+}
+
+/* Navegadores antiguos sin color-mix (iPhone con iOS < 16.2):
+   valores fijos para tema oscuro, así el texto nunca queda invisible. */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  .ab-scope {
+    --ab-text: #eef2f6;
+    --ab-muted: #a3adb8;
+    --ab-faint: #75808c;
+    --ab-line: rgba(255, 255, 255, 0.09);
+    --ab-line-strong: rgba(255, 255, 255, 0.18);
+    --ab-surface: rgba(255, 255, 255, 0.05);
+    --ab-surface-2: rgba(255, 255, 255, 0.09);
+    --ab-elevated: #1b2326;
+    --ab-primary-soft: rgba(255, 255, 255, 0.08);
+    --ab-primary-line: rgba(255, 255, 255, 0.25);
+  }
+  .ab-input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px #1b2326 inset !important; }
+}
