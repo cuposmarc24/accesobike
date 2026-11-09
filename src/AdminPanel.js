@@ -19,6 +19,15 @@ import {
   notifyNewReservation
 } from './lib/pushNotifications';
 
+// La base de datos guarda la hora en UTC sin indicar zona ("2026-11-09T15:05:00").
+// Sin la "Z", el navegador la toma como hora local y queda 4 h adelantada en Venezuela.
+const parseDbDate = (value) => {
+  if (!value) return new Date(NaN);
+  const s = String(value).replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
+  const hasZone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(s);
+  return new Date(hasZone ? s : `${s}Z`);
+};
+
 const formatMontoVE = (value) => {
   if (!value) return '';
   const num = parseFloat(value);
@@ -106,7 +115,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
 
   const formatDateTime = (iso) => {
     if (!iso) return '';
-    const d = new Date(iso);
+    const d = parseDbDate(iso);
     const date = d.toLocaleDateString('es-VE');
     const hours = d.getHours();
     const mins = String(d.getMinutes()).padStart(2, '0');
@@ -289,7 +298,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         .sort((a, b) => (a.seats?.seat_number || 0) - (b.seats?.seat_number || 0))
         .map((r, i) => [
           i + 1, r.customer_name, `#${r.seats?.seat_number}`, r.customer_phone,
-          new Date(r.created_at).toLocaleDateString('es-ES')
+          parseDbDate(r.created_at).toLocaleDateString('es-ES')
         ]),
       startY: 55,
       styles: { fontSize: 10, cellPadding: 5 },
@@ -445,7 +454,7 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
                           <span className="ab-stat__value" style={{ color: '#fbbf24', fontSize: 22 }}>${bid.bid_amount}</span>
                         </div>
                         <p style={{ margin: '4px 0 12px', fontSize: 13, color: 'var(--ab-faint)' }}>
-                          {bid.phone} — {new Date(bid.created_at).toLocaleDateString('es-VE')}
+                          {bid.phone} — {parseDbDate(bid.created_at).toLocaleDateString('es-VE')}
                         </p>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button type="button" className="ab-btn ab-btn--warn ab-btn--sm" style={{ flex: 1 }} onClick={() => assignVIPSeat(bid)}><MdEmojiEvents size={17} /> Asignar VIP</button>
