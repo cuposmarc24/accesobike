@@ -1200,7 +1200,7 @@ function EventCreationForm({ onClose, onEventCreated, editingEvent }) {
                                                 fontSize: '12px',
                                                 fontWeight: '500'
                                             }}>
-                                                Costo del Asiento (ej. $ 50.000)
+                                                Costo del asiento (ej: 10€, $10 o Bs 500)
                                             </label>
                                             <input
                                                 type="text"

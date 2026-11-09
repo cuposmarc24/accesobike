@@ -372,7 +372,7 @@ function EventQuickEdit({ event, onClose, onSaved }) {
                   <Field label="Fecha de esta sesión (opcional, ej: 2026-06-26)" value={s.date || ''}
                     onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, date: v } : x))}
                     placeholder="YYYY-MM-DD" />
-                  <Field label="Precio (USD)" value={s.price}
+                  <Field label="Precio (ej: 10€, $10 o Bs 500)" value={s.price}
                     onChange={v => setSessions(p => p.map((x, j) => j === i ? { ...x, price: v } : x))}
                     placeholder="25.00" />
 

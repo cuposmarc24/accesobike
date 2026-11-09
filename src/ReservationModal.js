@@ -87,16 +87,35 @@ function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm
     }
   };
 
-  const convertToBs = (priceUSD) => {
-    if (!rateConfig || !priceUSD) return null;
-    const rate = parseFloat(rateConfig.rate_value);
-    if (!rate) return null;
-    const priceNum = parseFloat(String(priceUSD).replace(/[^0-9.]/g, ''));
-    return isNaN(priceNum) ? null : (priceNum * rate).toFixed(2);
-  };
-
   // seatPrice (precio por fila) tiene prioridad sobre el precio general de sesión
   const sessionPrice = seatPrice || session?.price || rodada?.price || rodada?.sessions?.[0]?.price || null;
+
+  // Interpreta el precio tal como lo escribió el organizador: "10€", "$ 50.000", "Bs 1.500,50"
+  const priceInfo = (() => {
+    if (!sessionPrice) return null;
+    const raw = String(sessionPrice);
+    const currency = /€|eur/i.test(raw) ? 'EUR' : /bs|ves|bol/i.test(raw) ? 'BS' : 'USD';
+    let n = (raw.match(/[\d.,]+/) || [''])[0];
+    if (n.includes(',') && n.includes('.')) n = n.replace(/\./g, '').replace(',', '.');
+    else if (n.includes(',')) n = n.replace(',', '.');
+    else if ((n.match(/\./g) || []).length > 1 || /\.\d{3}$/.test(n)) n = n.replace(/\./g, '');
+    const amount = parseFloat(n);
+    if (isNaN(amount)) return null;
+    return { amount, currency };
+  })();
+
+  const isBsCurrency = (c) => c === 'BS' || c === 'Bs' || c === 'VES';
+  const fmtBs = (n) => n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtPrice = ({ amount, currency }) =>
+    currency === 'BS' ? `Bs ${fmtBs(amount)}` : `${currency === 'EUR' ? '€' : '$'}${amount.toFixed(2)}`;
+
+  // Monto en Bs: si el precio ya está en Bs se usa tal cual; si no, se multiplica por la tasa guardada
+  const amountInBs = () => {
+    if (!priceInfo) return null;
+    if (priceInfo.currency === 'BS') return priceInfo.amount;
+    const rate = parseFloat(rateConfig?.rate_value);
+    return rate ? priceInfo.amount * rate : null;
+  };
 
   /* ── Handlers ── */
   const handleInput = (e) => {
@@ -148,19 +167,14 @@ function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm
     return '$';
   };
 
-  // Monto esperado en la moneda del método seleccionado
+  // Monto esperado según el método seleccionado: { num, label }
   const expectedAmount = () => {
-    if (!sessionPrice || !selectedMethod) return null;
-    const sym = currencySymbol(selectedMethod.currency);
-    const priceNum = parseFloat(String(sessionPrice).replace(/[^0-9.]/g, ''));
-    if (isNaN(priceNum)) return null;
-    if (sym === 'Bs' && rateConfig) {
-      const rate = parseFloat(rateConfig.rate_value);
-      return rate ? `Bs ${(priceNum * rate).toFixed(2)}` : null;
+    if (!priceInfo || !selectedMethod) return null;
+    if (isBsCurrency(selectedMethod.currency)) {
+      const bs = amountInBs();
+      return bs ? { num: bs, label: `Bs ${fmtBs(bs)}` } : null;
     }
-    if (sym === '$') return `$${priceNum.toFixed(2)}`;
-    if (sym === '€') return `€${priceNum.toFixed(2)}`;
-    return null;
+    return { num: priceInfo.amount, label: fmtPrice(priceInfo) };
   };
 
   const handleCapture = (e) => {
@@ -188,7 +202,7 @@ function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm
     if (selectedMethod && paymentData.monto) {
       const expected = expectedAmount();
       if (expected) {
-        const expectedNum = parseFloat(expected.replace(/[^0-9.]/g, ''));
+        const expectedNum = expected.num;
         const enteredNum = parseInt(paymentData.monto, 10) / 100;
         const minAccepted = Math.floor(expectedNum);
         const maxAccepted = Math.ceil(expectedNum);
@@ -230,8 +244,15 @@ function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm
 
   const theme = { primaryColor, backgroundColor };
   const seatNumber = seat?.seat_number != null ? String(seat.seat_number).padStart(2, '0') : '–';
-  const isBs = selectedMethod && ['BS', 'Bs', 'VES'].includes(selectedMethod.currency);
-  const priceUSD = sessionPrice ? parseFloat(String(sessionPrice).replace(/[^0-9.]/g, '')) : NaN;
+  // Total a mostrar: en Bs si el método es en bolívares; si no, en la moneda del precio
+  const totalLabel = (() => {
+    if (!priceInfo) return null;
+    if (selectedMethod && isBsCurrency(selectedMethod.currency)) {
+      const bs = amountInBs();
+      if (bs) return `Bs ${fmtBs(bs)}`;
+    }
+    return fmtPrice(priceInfo);
+  })();
 
   return (
     <>
@@ -316,15 +337,10 @@ function ReservationModal({ seat, rodada, session, seatPrice, onClose, onConfirm
               })}
             </div>
 
-            {sessionPrice && !isNaN(priceUSD) && (
+            {totalLabel && (
               <div className="ab-total">
                 <span className="ab-total__label">Total a pagar</span>
-                <span className="ab-total__value">
-                  ${priceUSD.toFixed(2)}
-                  {isBs && convertToBs(sessionPrice) && (
-                    <span className="ab-total__alt">≈ Bs {convertToBs(sessionPrice)}</span>
-                  )}
-                </span>
+                <span className="ab-total__value">{totalLabel}</span>
               </div>
             )}
 
