@@ -82,8 +82,9 @@ function GlowingNav({ items, activeKey, onChange, primaryColor = '#13c8ec', back
       <style>{`
         .gn-nav {
           position: fixed;
-          bottom: 24px;
+          bottom: calc(18px + env(safe-area-inset-bottom));
           left: 50%;
+          max-width: calc(100vw - 24px);
           transform: translateX(-50%);
           z-index: 200;
           border-radius: 100px;
@@ -204,10 +205,10 @@ function GlowingNav({ items, activeKey, onChange, primaryColor = '#13c8ec', back
           background: none;
           border: none;
           cursor: pointer;
-          color: #3d5060;
-          font-size: 14px;
-          font-weight: 500;
-          font-family: Inter, sans-serif;
+          color: rgba(255,255,255,0.55);
+          font-size: 15px;
+          font-weight: 550;
+          font-family: var(--ab-font, Inter, sans-serif);
           letter-spacing: 0.1px;
           position: relative;
           z-index: 10;

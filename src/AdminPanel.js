@@ -8,6 +8,9 @@ import AdminBikes from './AdminBikes';
 import AdminSettings from './AdminSettings';
 import GlowingNav from './GlowingNav';
 import { MdCheck, MdClose, MdLockOpen, MdEmojiEvents, MdDelete, MdPhone, MdDownload, MdHourglassEmpty, MdCheckCircleOutline, MdStarOutline } from 'react-icons/md';
+import BottomSheet from './BottomSheet';
+import { Flyer } from './SessionList';
+import { themeVars } from './lib/theme';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -37,7 +40,6 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
   const secondaryColor  = config?.theme?.secondaryColor  || '#1a2c30';
   const backgroundColor = config?.theme?.backgroundColor || '#111f22';
 
-  console.log('🎨 AdminPanel colores:', { primaryColor, secondaryColor, backgroundColor, theme: config?.theme });
 
   // Navigation tabs: 'dashboard' | 'bikes' | 'reservations' | 'settings'
   const [activeNav, setActiveNav] = useState('dashboard');
@@ -308,311 +310,70 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
   const pendingReservations = reservations.filter(r => r.status === 'reservada');
   const occupiedReservations = reservations.filter(r => r.status === 'ocupada');
 
-  // ── Estilos reutilizables ──
-  const sectionTitle = (label, count, color = primaryColor) => (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      marginBottom: '14px', paddingBottom: '10px',
-      borderBottom: `1px solid ${color}30`
-    }}>
-      <h2 style={{ color, fontSize: '15px', fontWeight: '700', margin: 0 }}>{label}</h2>
-      {count !== undefined && (
-        <span style={{
-          background: `${color}20`, color,
-          fontSize: '12px', fontWeight: '700',
-          padding: '3px 10px', borderRadius: '20px',
-          border: `1px solid ${color}40`
-        }}>{count}</span>
-      )}
-    </div>
-  );
+  const theme = { primaryColor, backgroundColor };
 
-  // ── BOTTOM SHEET: Detalle de reserva ──
-  const ReservationDetailModal = ({ reservation, onClose }) => {
-    const [closing, setClosing] = useState(false);
-
-    if (!reservation && !closing) return null;
-
-    const isPending = reservation?.status === 'reservada';
-    const sessionLabel = (() => {
-      if (!reservation) return '';
-      const hasOldFormat = reservation.session_id === eventId;
-      return hasOldFormat
-        ? (config?.sessions?.[0] ? `${config.sessions[0].event_name} - ${formatTime(config.sessions[0].time)}` : 'Sesión única')
-        : getSessionName(reservation.session_id);
-    })();
-
-    const handleClose = () => {
-      setClosing(true);
-      setTimeout(() => { setClosing(false); onClose(); }, 320);
-    };
-
-    const animStyle = closing
-      ? { transform: 'translateY(100%)', opacity: 0, transition: 'transform 0.32s cubic-bezier(0.32,0,0.67,0), opacity 0.28s ease' }
-      : { transform: 'translateY(0)', opacity: 1, transition: 'transform 0.36s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease' };
-
-    if (!reservation) return null;
-
-    return (
-      <div
-        style={{
-          position: 'fixed', inset: 0,
-          background: closing ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          zIndex: 3000,
-          transition: 'background 0.3s ease'
-        }}
-        onClick={handleClose}
-      >
-        <style>{`@keyframes sheetUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
-        <div
-          onClick={e => e.stopPropagation()}
-          style={{
-            background: backgroundColor,
-            width: '100%', maxWidth: '480px',
-            borderRadius: '20px 20px 0 0',
-            border: `1.5px solid ${primaryColor}30`,
-            borderBottom: 'none',
-            boxShadow: '0 -12px 50px rgba(0,0,0,0.6)',
-            fontFamily: 'Inter, sans-serif',
-            maxHeight: '92vh',
-            overflowY: 'auto',
-            animation: closing ? 'none' : 'sheetUp 0.36s cubic-bezier(0.16,1,0.3,1)',
-            ...animStyle
-          }}
-        >
-          {/* Drag handle */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
-            <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.12)' }} />
-          </div>
-
-          {/* Header */}
-          <div style={{ padding: '12px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#e2e8f0', fontFamily: 'Inter, sans-serif' }}>Detalle de Reserva</h2>
-              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>{sessionLabel}</p>
-            </div>
-            <button onClick={handleClose} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px 10px', color: '#94a3b8', cursor: 'pointer', fontSize: '15px', lineHeight: 1 }}>✕</button>
-          </div>
-
-          <div style={{ padding: '18px 20px 32px' }}>
-            {/* Info cliente */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
-              <p style={{ margin: '0 0 6px', fontSize: '10px', fontWeight: '700', color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Cliente</p>
-              <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '800', color: '#e2e8f0' }}>{reservation.customer_name}</h3>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                <Tag label={`Bici #${reservation.seats?.seat_number}`} color={primaryColor} />
-                <Tag label={formatDateTime(reservation.created_at)} color="#64748b" />
-                <Tag label={isPending ? 'PENDIENTE' : 'CONFIRMADO'} color={isPending ? '#f97316' : '#22c55e'} />
-              </div>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <MdPhone size={13} /> {reservation.customer_phone}
-              </p>
-            </div>
-
-            {/* Datos de pago */}
-            {(reservation.payment_method_name || reservation.payment_monto || reservation.payment_fecha) && (
-              <div style={{ background: `${primaryColor}08`, border: `1px solid ${primaryColor}25`, borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
-                <p style={{ margin: '0 0 10px', fontSize: '10px', fontWeight: '700', color: primaryColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Datos del pago</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {reservation.payment_method_name && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>Método</span>
-                      <span style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: '700' }}>💳 {reservation.payment_method_name}</span>
-                    </div>
-                  )}
-                  {reservation.payment_monto && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>Monto</span>
-                      <span style={{ fontSize: '13px', color: primaryColor, fontWeight: '800' }}>{formatMontoVE(reservation.payment_monto)}</span>
-                    </div>
-                  )}
-                  {reservation.payment_fecha && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>Fecha</span>
-                      <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{reservation.payment_fecha}</span>
-                    </div>
-                  )}
-                  {reservation.payment_referencia && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>Referencia</span>
-                      <span style={{ fontSize: '13px', color: '#e2e8f0', letterSpacing: '0.1em', fontWeight: '700' }}>{reservation.payment_referencia}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Comprobante */}
-            {reservation.payment_capture_url && (
-              <div style={{ marginBottom: '14px' }}>
-                <p style={{ margin: '0 0 8px', fontSize: '10px', fontWeight: '700', color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Comprobante</p>
-                <img
-                  src={reservation.payment_capture_url}
-                  alt="Comprobante"
-                  style={{ width: '100%', borderRadius: '12px', border: `1px solid ${primaryColor}30`, objectFit: 'cover', cursor: 'pointer' }}
-                  onClick={() => window.open(reservation.payment_capture_url, '_blank')}
-                />
-              </div>
-            )}
-
-            {/* Acciones */}
-            {isPending ? (
-              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                <button
-                  onClick={() => { confirmReservation(reservation); handleClose(); }}
-                  style={{
-                    flex: 1, padding: '13px', borderRadius: '12px', border: 'none',
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                    color: 'white', fontSize: '14px', fontWeight: '800',
-                    cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                  }}
-                >
-                  <MdCheck size={18} /> Confirmar
-                </button>
-                <button
-                  onClick={() => { cancelReservation(reservation); handleClose(); }}
-                  style={{
-                    flex: 1, padding: '13px', borderRadius: '12px',
-                    border: '1px solid rgba(239,68,68,0.4)',
-                    background: 'rgba(239,68,68,0.1)',
-                    color: '#ef4444', fontSize: '14px', fontWeight: '800',
-                    cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                  }}
-                >
-                  <MdClose size={18} /> Cancelar
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => { enableOccupied(reservation); handleClose(); }}
-                style={{
-                  width: '100%', padding: '13px', borderRadius: '12px', marginTop: '8px',
-                  border: '1px solid rgba(249,115,22,0.35)',
-                  background: 'rgba(249,115,22,0.1)',
-                  color: '#f97316', fontSize: '14px', fontWeight: '800',
-                  cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                }}
-              >
-                <MdLockOpen size={18} /> Habilitar asiento
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const sessionLabelOf = (reservation) => {
+    if (!reservation) return '';
+    return reservation.session_id === eventId
+      ? (config?.sessions?.[0] ? `${config.sessions[0].event_name} - ${formatTime(config.sessions[0].time)}` : 'Sesión única')
+      : getSessionName(reservation.session_id);
   };
 
+  const seatNum = (r) => String(r.seats?.seat_number ?? '?').padStart(2, '0');
 
-
-
-
-  const pendingListRow = (reservation) => (
-    <div
-      key={reservation.id}
-      onClick={() => setSelectedReservation(reservation)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '12px 14px', borderRadius: '12px',
-        border: `1px solid ${primaryColor}20`,
-        background: 'rgba(255,255,255,0.02)',
-        cursor: 'pointer', transition: 'all 0.15s',
-        marginBottom: '8px'
-      }}
-      onMouseOver={e => { e.currentTarget.style.background = `${primaryColor}0A`; e.currentTarget.style.borderColor = `${primaryColor}50`; }}
-      onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = `${primaryColor}20`; }}
-    >
-      {/* Avatar / seat number */}
-      <div style={{
-        width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
-        background: `${primaryColor}18`, border: `1px solid ${primaryColor}30`,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-      }}>
-        <span style={{ fontSize: '8px', color: primaryColor, fontWeight: '700', letterSpacing: '0.05em' }}>BICI</span>
-        <span style={{ fontSize: '14px', color: primaryColor, fontWeight: '900', lineHeight: 1 }}>#{reservation.seats?.seat_number}</span>
-      </div>
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {reservation.customer_name}
-        </p>
-        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
-          {reservation.customer_phone} · {formatDateTime(reservation.created_at)}
-        </p>
-      </div>
-      {/* Flecha */}
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+  // ── Encabezado de sección ──
+  const sectionTitle = (label, count, tone) => (
+    <div className="ab-sec-head">
+      <h2>{label}</h2>
+      {count !== undefined && <span className="ab-count" style={tone ? { '--tone': tone } : undefined}>{count}</span>}
     </div>
   );
 
-  const occupiedRow = (reservation) => (
-    <div
+  // ── Fila de reserva (pendiente u ocupada) ──
+  const reservationRow = (reservation, tone) => (
+    <button
+      type="button"
       key={reservation.id}
+      className="ab-row"
       onClick={() => setSelectedReservation(reservation)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '11px 14px', borderRadius: '12px',
-        border: '1px solid rgba(239,68,68,0.15)',
-        background: 'rgba(239,68,68,0.03)',
-        cursor: 'pointer', transition: 'all 0.15s',
-        marginBottom: '8px'
-      }}
-      onMouseOver={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'; }}
-      onMouseOut={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.03)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.15)'; }}
     >
-      {/* Badge bici */}
-      <div style={{
-        width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
-        background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-      }}>
-        <span style={{ fontSize: '7px', color: '#ef4444', fontWeight: '700', letterSpacing: '0.05em' }}>BICI</span>
-        <span style={{ fontSize: '14px', color: '#ef4444', fontWeight: '900', lineHeight: 1 }}>#{reservation.seats?.seat_number}</span>
-      </div>
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {reservation.customer_name}
-        </p>
-        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
-          {reservation.customer_phone} · {formatDateTime(reservation.created_at)}
-        </p>
-      </div>
-      {/* Flecha */}
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+      <span className="ab-row__badge ab-display" style={tone ? { '--tone': tone } : undefined}>{seatNum(reservation)}</span>
+      <span className="ab-row__main">
+        <span className="ab-row__title">{reservation.customer_name}</span>
+        <span className="ab-row__sub">{reservation.customer_phone} — {formatDateTime(reservation.created_at)}</span>
+      </span>
+      <svg className="ab-row__chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+    </button>
+  );
+
+  const emptyState = (Icon, text) => (
+    <div className="ab-empty">
+      {Icon && <Icon size={28} />}
+      {text}
     </div>
   );
 
-  const reservationCard = (reservation, isPending) => isPending ? (
-    <div key={reservation.id} style={{
-      background: 'rgba(255,255,255,0.03)', borderRadius: '14px', padding: '14px',
-      border: `1px solid ${primaryColor}20`
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-        <div>
-          <h3 style={{ color: 'white', fontSize: '14px', fontWeight: '700', margin: '0 0 4px 0' }}>{reservation.customer_name}</h3>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <Tag label={`Bici #${reservation.seats?.seat_number}`} color={primaryColor} />
-            <Tag label={formatDateTime(reservation.created_at)} color="#64748b" />
-          </div>
-        </div>
-        <div style={{ background: `${primaryColor}15`, border: `1px solid ${primaryColor}30`, borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: '700', color: primaryColor }}>PENDIENTE</div>
-      </div>
-      <div style={{ display: 'flex', gap: '6px', fontSize: '12px', color: '#64748b', marginBottom: '10px', flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MdPhone size={12} /> {reservation.customer_phone}</span>
-        <span>•</span>
-        <span>{(() => { const hasOldFormat = reservation.session_id === eventId; return hasOldFormat ? (config?.sessions?.[0] ? `${config.sessions[0].event_name} - ${formatTime(config.sessions[0].time)}` : 'Sesión única') : getSessionName(reservation.session_id); })()}</span>
-      </div>
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <ActionButton label="Confirmar" icon={MdCheck} color="#22c55e" onClick={() => confirmReservation(reservation)} />
-        <ActionButton label="Cancelar" icon={MdClose} color="#ef4444" onClick={() => cancelReservation(reservation)} />
-      </div>
+  const sessionTabs = (sessions, withCounts) => sessions.length > 1 && (
+    <div className="ab-seg" role="tablist">
+      {sessions.map(s => {
+        const isActive = activeSessionTab === s.id;
+        const count = withCounts ? withCounts(s.id) : 0;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            className={`ab-seg__btn${isActive ? ' is-active' : ''}`}
+            onClick={() => setActiveSessionTab(s.id)}
+          >
+            {s.event_name || s.id}
+            {count > 0 && <span className="ab-seg__count">{count}</span>}
+          </button>
+        );
+      })}
     </div>
-  ) : occupiedRow(reservation);
+  );
 
   // ── LOADING ──
   if (loading) {
@@ -633,220 +394,104 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         );
 
       case 'reservations': {
-        // Filtrar por sesión activa. Reservas con session_id === eventId son
-        // formato viejo (pre-fix) — se asignan a la primera sesión por compatibilidad.
+        // Reservas con session_id === eventId son formato viejo: se asignan a la primera sesión
         const normalizeSessionId = (r) =>
           (r.session_id === eventId) ? (config?.sessions?.[0]?.id || activeSessionTab) : r.session_id;
 
         const filteredPending = pendingReservations.filter(r => normalizeSessionId(r) === activeSessionTab);
         const filteredOccupied = occupiedReservations.filter(r => normalizeSessionId(r) === activeSessionTab);
 
-        // Contar pendientes por sesión para mostrar en cada tab
         const pendingCountBySession = (sessionId) => {
           const firstSessionId = config?.sessions?.[0]?.id;
-          return pendingReservations.filter(r => {
-            const sid = (r.session_id === eventId) ? firstSessionId : r.session_id;
-            return sid === sessionId;
-          }).length;
+          return pendingReservations.filter(r => ((r.session_id === eventId) ? firstSessionId : r.session_id) === sessionId).length;
         };
 
+        const bids = auctionBids.filter(b => b.session_id === activeSessionTab);
+
         return (
-          <div style={{ paddingBottom: '80px' }}>
-            {/* Tabs de sesión */}
-            {config?.sessions && config.sessions.length > 1 && (
-              <div style={{
-                display: 'flex', gap: '4px', marginBottom: '18px',
-                background: 'rgba(255,255,255,0.03)', borderRadius: '12px',
-                padding: '4px', overflowX: 'auto'
-              }}>
-                {config.sessions.map(s => {
-                  const isActive = activeSessionTab === s.id;
-                  const pendingCount = pendingCountBySession(s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => setActiveSessionTab(s.id)}
-                      style={{
-                        flex: 1, minWidth: '100px', padding: '9px 10px',
-                        borderRadius: '9px', border: 'none', fontSize: '12px',
-                        fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap',
-                        background: isActive ? primaryColor : 'transparent',
-                        color: isActive ? backgroundColor : '#64748b',
-                        transition: 'all 0.2s',
-                        position: 'relative'
-                      }}
-                    >
-                      {s.event_name || s.id}
-                      {pendingCount > 0 && (
-                        <span style={{
-                          position: 'absolute', top: '4px', right: '6px',
-                          background: isActive ? backgroundColor : '#ef4444',
-                          color: isActive ? '#ef4444' : '#fff',
-                          borderRadius: '50%', width: '16px', height: '16px',
-                          fontSize: '10px', fontWeight: '800',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          lineHeight: 1
-                        }}>
-                          {pendingCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+          <>
+            {sessionTabs(config?.sessions || [], pendingCountBySession)}
+
+            <section className="ab-section">
+              {sectionTitle('Por confirmar', filteredPending.length, '#f59e0b')}
+              {filteredPending.length === 0
+                ? emptyState(MdHourglassEmpty, 'No hay reservas por confirmar')
+                : <div className="ab-list">{filteredPending.map(r => reservationRow(r, '#f59e0b'))}</div>}
+            </section>
+
+            <section className="ab-section">
+              <div className="ab-sec-head">
+                <h2>Confirmadas <span className="ab-count" style={{ '--tone': '#22c55e', marginLeft: 6 }}>{filteredOccupied.length}</span></h2>
+                {filteredOccupied.length > 0 && (
+                  <button type="button" className="ab-btn ab-btn--ghost ab-btn--sm" onClick={() => generatePDF(activeSessionTab)}>
+                    <MdDownload size={17} /> Descargar PDF
+                  </button>
+                )}
               </div>
-            )}
+              {filteredOccupied.length === 0
+                ? emptyState(MdCheckCircleOutline, 'Aún no hay bicis confirmadas en esta rodada')
+                : <div className="ab-list">{filteredOccupied.map(r => reservationRow(r, '#22c55e'))}</div>}
+            </section>
 
-            {/* Pendientes */}
-            <div style={{ marginBottom: '28px' }}>
-              {sectionTitle('Reservas Pendientes', filteredPending.length)}
-              {filteredPending.length === 0 ? (
-                <EmptyState icon={MdHourglassEmpty} text="No hay reservas pendientes" />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {filteredPending.map(r => pendingListRow(r))}
-                </div>
-              )}
-            </div>
-
-            {/* Ocupados */}
-            <div>
-              {sectionTitle('Asientos Ocupados', filteredOccupied.length, '#ef4444')}
-
-              {/* PDF button */}
-              {filteredOccupied.length > 0 && (
-                <button
-                  onClick={() => generatePDF(activeSessionTab)}
-                  style={{
-                    background: 'rgba(76,175,80,0.15)', color: '#4caf50',
-                    border: '1px solid rgba(76,175,80,0.3)', borderRadius: '10px',
-                    padding: '8px 14px', fontSize: '12px', fontWeight: '600',
-                    cursor: 'pointer', marginBottom: '12px'
-                  }}
-                >
-                  <MdDownload size={14} style={{ marginRight: '5px', verticalAlign: 'middle' }} />Exportar PDF
-                </button>
-              )}
-
-              {filteredOccupied.length === 0 ? (
-                <EmptyState icon={MdCheckCircleOutline} text="No hay asientos ocupados en esta sesión" />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {filteredOccupied.map(r => occupiedRow(r))}
-                </div>
-              )}
-            </div>
-
-            {/* VIP Subastas */}
             {config?.vipFeatures?.enabled && (
-              <div style={{ marginTop: '32px' }}>
-                {sectionTitle('Subastas VIP', auctionBids.length, '#fbbf24')}
-                {auctionBids.length === 0 ? (
-                  <EmptyState icon={MdStarOutline} text="No hay subastas activas" />
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {auctionBids.filter(b => b.session_id === activeSessionTab).map((bid, index) => (
-                      <div key={bid.id} style={{
-                        background: 'rgba(251,191,36,0.06)',
-                        border: '1px solid rgba(251,191,36,0.2)',
-                        borderRadius: '14px', padding: '14px'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                          <h3 style={{ color: '#fbbf24', fontSize: '14px', fontWeight: '700', margin: 0 }}>
-                            {index === 0 ? '🥇 ' : `#${index + 1} `}{bid.full_name}
-                          </h3>
-                          <span style={{ color: '#fbbf24', fontSize: '16px', fontWeight: '800' }}>${bid.bid_amount}</span>
+              <section className="ab-section">
+                {sectionTitle('Subastas VIP', bids.length, '#fbbf24')}
+                {bids.length === 0 ? emptyState(MdStarOutline, 'No hay ofertas en esta rodada') : (
+                  <div className="ab-list">
+                    {bids.map((bid, index) => (
+                      <div key={bid.id} className="ab-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                          <strong style={{ fontSize: 15 }}>{index === 0 ? '🥇 ' : `${index + 1}. `}{bid.full_name}</strong>
+                          <span className="ab-stat__value" style={{ color: '#fbbf24', fontSize: 22 }}>${bid.bid_amount}</span>
                         </div>
-                        <p style={{ color: '#64748b', fontSize: '12px', margin: '0 0 10px 0' }}>
-                          <MdPhone size={12} style={{ verticalAlign: 'middle', marginRight: '3px' }} />{bid.phone} • {new Date(bid.created_at).toLocaleDateString('es-VE')}
+                        <p style={{ margin: '4px 0 12px', fontSize: 13, color: 'var(--ab-faint)' }}>
+                          {bid.phone} — {new Date(bid.created_at).toLocaleDateString('es-VE')}
                         </p>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <ActionButton label="Asignar VIP" icon={MdEmojiEvents} color="#fbbf24" textColor="#000" onClick={() => assignVIPSeat(bid)} />
-                          <ActionButton label="Eliminar" icon={MdDelete} color="#ef4444" onClick={() => deleteBid(bid)} />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" className="ab-btn ab-btn--warn ab-btn--sm" style={{ flex: 1 }} onClick={() => assignVIPSeat(bid)}><MdEmojiEvents size={17} /> Asignar VIP</button>
+                          <button type="button" className="ab-btn ab-btn--danger ab-btn--sm" style={{ flex: 1 }} onClick={() => deleteBid(bid)}><MdDelete size={17} /> Eliminar</button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
+              </section>
             )}
-          </div>
+          </>
         );
       }
 
-      default: { // dashboard
+      default: { // estado
         const sessions = config?.sessions || [];
         const activeSession = sessions.find(s => s.id === activeSessionTab) || sessions[0];
         const flyer = activeSession?.image || eventData?.event_image;
 
         return (
-          <div style={{ paddingBottom: '100px' }}>
+          <>
+            {sessionTabs(sessions)}
 
-            {/* Selector de sesión con flyer */}
-            {sessions.length > 0 && (
-              <div style={{ marginBottom: '14px' }}>
-                {/* Tabs de sesión */}
-                {sessions.length > 1 && (
-                  <div style={{
-                    display: 'flex', gap: '4px', marginBottom: '10px',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: '10px', padding: '4px'
-                  }}>
-                    {sessions.map(s => (
-                      <button
-                        key={s.id}
-                        onClick={() => setActiveSessionTab(s.id)}
-                        style={{
-                          flex: 1, padding: '8px 10px', borderRadius: '8px',
-                          border: 'none', fontSize: '12px', fontWeight: '600',
-                          cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
-                          background: activeSessionTab === s.id ? primaryColor : 'transparent',
-                          color: activeSessionTab === s.id ? backgroundColor : '#64748b',
-                        }}
-                      >
-                        {s.event_name || s.id}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Flyer de la sesión activa */}
-                {flyer && (
-                  <img
-                    src={flyer}
-                    alt="Flyer"
-                    style={{
-                      width: '100%', borderRadius: '12px',
-                      border: `1px solid ${primaryColor}20`,
-                      objectFit: 'cover', display: 'block'
-                    }}
-                  />
-                )}
+            {flyer && (
+              <div style={{ marginBottom: 14 }}>
+                <Flyer compact src={flyer} alt="Flyer de la rodada" />
               </div>
             )}
 
-            {/* Alerta de pendientes */}
             {pendingReservations.length > 0 && (
-              <div style={{
-                border: `1px solid ${primaryColor}30`,
-                borderRadius: '11px', padding: '11px 14px', marginBottom: '14px',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}>
-                <p style={{ color: '#94a3b8', fontSize: '13px', margin: 0 }}>
-                  <span style={{ color: primaryColor, fontWeight: '700' }}>{pendingReservations.length}</span> pendientes
-                </p>
-                <button
-                  onClick={() => setActiveNav('reservations')}
-                  style={{
-                    background: `${primaryColor}20`, color: primaryColor,
-                    border: `1px solid ${primaryColor}40`, borderRadius: '8px', padding: '6px 12px',
-                    fontSize: '12px', fontWeight: '700', cursor: 'pointer', flexShrink: 0
-                  }}
-                >Ver →</button>
-              </div>
+              <button
+                type="button"
+                className="ab-row"
+                style={{ marginBottom: 14, '--tone': '#f59e0b' }}
+                onClick={() => setActiveNav('reservations')}
+              >
+                <span className="ab-row__badge ab-display">{pendingReservations.length}</span>
+                <span className="ab-row__main">
+                  <span className="ab-row__title">{pendingReservations.length === 1 ? 'Reserva por confirmar' : 'Reservas por confirmar'}</span>
+                  <span className="ab-row__sub">Revisa los pagos y confírmalos</span>
+                </span>
+                <svg className="ab-row__chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+              </button>
             )}
 
-            {/* Mapa de bicis — tabs controlados por el dashboard */}
             <AdminBikes
               eventId={eventId}
               config={config}
@@ -858,122 +503,141 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
               onTabChange={setActiveSessionTab}
               onNoteSaved={reloadConfig}
             />
-          </div>
+          </>
         );
       }
     }
   };
 
   const navLabels = {
-    dashboard: 'Dashboard',
-    bikes: 'Bicis',
+    dashboard: 'Estado',
     reservations: 'Reservas',
     settings: 'Ajustes'
   };
 
-  return (
-    <div style={{
-      background: backgroundColor,
-      minHeight: '100vh',
-      padding: '0',
-      color: 'white',
-      fontFamily: 'Inter, sans-serif'
-    }}>
-      {/* ── HEADER ── */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        background: `${backgroundColor}f0`,
-        backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid rgba(255,255,255,0.06)`,
-        padding: '12px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
-      }}>
-        {/* Logo + título */}
-        {eventData?.cycling_room_logo && (
-          <img
-            src={eventData.cycling_room_logo}
-            alt="Logo"
-            style={{ width: '36px', height: '36px', borderRadius: '9px', objectFit: 'cover', flexShrink: 0 }}
-          />
-        )}
+  // ── Panel de detalle de reserva ──
+  const renderDetailSheet = () => {
+    const reservation = selectedReservation;
+    if (!reservation) return null;
+    const isPending = reservation.status === 'reservada';
+    const hasPayment = reservation.payment_method_name || reservation.payment_monto || reservation.payment_fecha;
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{
-            color: 'white', fontSize: '15px', fontWeight: '700',
-            margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-          }}>
-            {navLabels[activeNav]}
-          </h1>
-          <p style={{
-            color: '#64748b', fontSize: '11px', margin: 0,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-          }}>
-            {eventData?.event_name || 'Panel Admin'}
-          </p>
+    return (
+      <BottomSheet
+        key={reservation.id}
+        theme={theme}
+        zIndex={1500}
+        ariaLabel="Detalle de la reserva"
+        onClose={() => setSelectedReservation(null)}
+        header={(close) => (
+          <div className="ab-sheet-head">
+            <div className="ab-seat-badge ab-display" aria-hidden="true">{seatNum(reservation)}</div>
+            <div className="ab-sheet-head__text">
+              <h2 className="ab-sheet-title">{reservation.customer_name}</h2>
+              <p className="ab-sheet-sub">{sessionLabelOf(reservation)}</p>
+            </div>
+            <button type="button" className="ab-icon-btn" onClick={close} aria-label="Cerrar"><MdClose size={20} /></button>
+          </div>
+        )}
+        footer={(close) => isPending ? (
+          <>
+            <button type="button" className="ab-btn ab-btn--danger" style={{ flex: 1 }} onClick={() => cancelReservation(reservation)}>
+              <MdClose size={19} /> Cancelar
+            </button>
+            <button type="button" className="ab-btn ab-btn--ok" style={{ flex: 1.4 }} onClick={() => { close(); confirmReservation(reservation); }}>
+              <MdCheck size={19} /> Confirmar pago
+            </button>
+          </>
+        ) : (
+          <button type="button" className="ab-btn ab-btn--warn ab-btn--block" onClick={() => { close(); enableOccupied(reservation); }}>
+            <MdLockOpen size={19} /> Liberar bici
+          </button>
+        )}
+      >
+        <div className="ab-pills" style={{ marginBottom: 16 }}>
+          <span className="ab-pill" style={{ '--tone': isPending ? '#f59e0b' : '#22c55e' }}>{isPending ? 'Por confirmar' : 'Confirmada'}</span>
+          <span className="ab-pill">{formatDateTime(reservation.created_at)}</span>
         </div>
 
-        {/* Botón notificaciones */}
-        <button
-          onClick={handleEnableNotifications}
-          title={notifStatus === 'granted' ? 'Notificaciones activas' : notifStatus === 'denied' ? 'Notificaciones bloqueadas' : 'Activar notificaciones'}
-          style={{
-            background: notifStatus === 'granted' ? `${primaryColor}18` : 'rgba(255,255,255,0.06)',
-            border: notifStatus === 'granted' ? `1px solid ${primaryColor}40` : '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px', padding: '8px 10px',
-            cursor: notifStatus === 'denied' ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, transition: 'all 0.2s'
-          }}
-        >
-          {notifStatus === 'granted' ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              <circle cx="18" cy="6" r="4" fill="#22c55e" stroke="none"/>
-            </svg>
-          ) : notifStatus === 'denied' ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              <line x1="4" y1="4" x2="20" y2="20"/>
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          )}
-        </button>
+        <div className="ab-card" style={{ paddingTop: 6, paddingBottom: 6 }}>
+          <div className="ab-kv">
+            <div className="ab-kv__row">
+              <span className="ab-kv__k">WhatsApp</span>
+              <a className="ab-kv__v" style={{ color: 'var(--ab-primary)', textDecoration: 'none' }}
+                href={`https://wa.me/${String(reservation.customer_phone || '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
+                <MdPhone size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{reservation.customer_phone}
+              </a>
+            </div>
+            {hasPayment && reservation.payment_method_name && (
+              <div className="ab-kv__row"><span className="ab-kv__k">Método</span><span className="ab-kv__v">{reservation.payment_method_name}</span></div>
+            )}
+            {hasPayment && reservation.payment_monto && (
+              <div className="ab-kv__row"><span className="ab-kv__k">Monto</span><span className="ab-kv__v ab-num" style={{ color: 'var(--ab-primary)' }}>{formatMontoVE(reservation.payment_monto)}</span></div>
+            )}
+            {hasPayment && reservation.payment_fecha && (
+              <div className="ab-kv__row"><span className="ab-kv__k">Fecha del pago</span><span className="ab-kv__v">{reservation.payment_fecha}</span></div>
+            )}
+            {reservation.payment_referencia && (
+              <div className="ab-kv__row"><span className="ab-kv__k">Referencia</span><span className="ab-kv__v ab-num" style={{ letterSpacing: '0.08em' }}>{reservation.payment_referencia}</span></div>
+            )}
+          </div>
+        </div>
 
-        {/* Botón cerrar sesión — solo ícono */}
+        {reservation.payment_capture_url && (
+          <div style={{ marginTop: 16 }}>
+            <span className="ab-label">Comprobante</span>
+            <a className="ab-proof" href={reservation.payment_capture_url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+              <img src={reservation.payment_capture_url} alt="Comprobante de pago" style={{ maxHeight: 360 }} />
+            </a>
+          </div>
+        )}
+      </BottomSheet>
+    );
+  };
+
+  return (
+    <div className="ab-scope ab-admin" style={themeVars(theme)}>
+      {/* ── Encabezado ── */}
+      <header className="ab-admin-head">
+        {eventData?.cycling_room_logo && (
+          <img className="ab-admin-head__logo" src={eventData.cycling_room_logo} alt="" />
+        )}
+        <div className="ab-admin-head__text">
+          <h1 className="ab-display ab-admin-head__title">{navLabels[activeNav]}</h1>
+          <p className="ab-admin-head__sub">{eventData?.event_name || 'Panel del evento'}</p>
+        </div>
+
         <button
-          onClick={() => showAlert('confirm', 'Cerrar sesión', '¿Estás seguro que deseas cerrar sesión del panel de administración?',
-            () => onBack(),
-            () => {}
-          )}
-          title="Cerrar sesión"
-          style={{
-            background: 'rgba(239,68,68,0.08)',
-            color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)',
-            borderRadius: '10px', padding: '8px 10px',
-            cursor: 'pointer', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0
-          }}
+          type="button"
+          className={`ab-icon-btn${notifStatus === 'granted' ? ' ab-icon-btn--active' : notifStatus === 'denied' ? ' ab-icon-btn--danger' : ''}`}
+          onClick={handleEnableNotifications}
+          aria-label={notifStatus === 'granted' ? 'Notificaciones activas' : notifStatus === 'denied' ? 'Notificaciones bloqueadas' : 'Activar notificaciones'}
+          title={notifStatus === 'granted' ? 'Notificaciones activas' : notifStatus === 'denied' ? 'Notificaciones bloqueadas' : 'Activar notificaciones'}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            {notifStatus === 'granted' && <circle cx="18" cy="6" r="4" fill="#22c55e" stroke="none" />}
+            {notifStatus === 'denied' && <line x1="4" y1="4" x2="20" y2="20" />}
           </svg>
         </button>
-      </div>
 
-      {/* ── CONTENIDO ── */}
-      <div style={{ padding: '16px' }}>
+        <button
+          type="button"
+          className="ab-icon-btn ab-icon-btn--danger"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          onClick={() => showAlert('confirm', 'Cerrar sesión', '¿Quieres salir del panel del evento?', () => onBack(), () => {})}
+        >
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+      </header>
+
+      {/* ── Contenido ── */}
+      <main className="ab-admin__content">
         {renderContent()}
-      </div>
+      </main>
 
       <GlowingNav
         activeKey={activeNav}
@@ -987,6 +651,52 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         ]}
       />
 
+      {renderDetailSheet()}
+
+      {/* Motivo de cancelación */}
+      {cancelReasonModal && (
+        <BottomSheet
+          key={`cancel-${cancelReasonModal.id}`}
+          theme={theme}
+          zIndex={1600}
+          ariaLabel="Motivo de cancelación"
+          onClose={() => { setCancelReasonModal(null); setCancelReason(''); }}
+          header={
+            <div>
+              <h2 className="ab-sheet-title">Cancelar reserva</h2>
+              <p className="ab-sheet-sub">Bici {seatNum(cancelReasonModal)} — {cancelReasonModal.customer_name}</p>
+            </div>
+          }
+          footer={(close) => (
+            <>
+              <button type="button" className="ab-btn ab-btn--ghost" style={{ flex: 1 }} onClick={close}>Volver</button>
+              <button
+                type="button"
+                className="ab-btn"
+                style={{ flex: 1.6, background: 'var(--ab-danger)', color: '#fff' }}
+                onClick={() => {
+                  executeCancelReservation(cancelReasonModal, cancelReason);
+                  setCancelReasonModal(null);
+                  setCancelReason('');
+                }}
+              >
+                <MdClose size={19} /> Cancelar reserva
+              </button>
+            </>
+          )}
+        >
+          <label className="ab-label" htmlFor="ab-cancel-reason">Motivo (se envía al cliente por WhatsApp)</label>
+          <textarea
+            id="ab-cancel-reason"
+            className="ab-textarea"
+            value={cancelReason}
+            onChange={e => setCancelReason(e.target.value)}
+            placeholder="Ej: pago no recibido"
+            rows={3}
+          />
+        </BottomSheet>
+      )}
+
       <AdminAlert
         isOpen={alert.isOpen}
         type={alert.type}
@@ -995,129 +705,8 @@ function AdminPanel({ onBack, eventId: propEventId, config: propConfig, eventDat
         onConfirm={alert.onConfirm}
         onCancel={alert.onCancel}
         whatsappUrl={alert.whatsappUrl}
-        theme={{ primaryColor, secondaryColor, backgroundColor }}
+        theme={theme}
       />
-
-      {/* Modales de detalle y cancelación */}
-      <ReservationDetailModal
-        reservation={selectedReservation}
-        onClose={() => setSelectedReservation(null)}
-      />
-      {/* Modal motivo de cancelación — inline para evitar pérdida de foco */}
-      {cancelReasonModal && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center',
-          alignItems: 'center', zIndex: 4000, padding: '20px'
-        }}>
-          <div style={{
-            background: backgroundColor, borderRadius: '18px', width: '100%', maxWidth: '360px',
-            border: '1.5px solid rgba(239,68,68,0.4)',
-            boxShadow: '0 24px 60px rgba(0,0,0,0.7)', padding: '24px',
-            fontFamily: 'Inter, sans-serif'
-          }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: '17px', fontWeight: '800', color: '#e2e8f0' }}>Motivo de cancelación</h3>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-              ¿Por qué se cancela la reserva de <strong style={{ color: '#e2e8f0' }}>{cancelReasonModal.customer_name}</strong>?
-            </p>
-            <textarea
-              autoFocus
-              value={cancelReason}
-              onChange={e => setCancelReason(e.target.value)}
-              placeholder="Ej: Pago no recibido, cliente no se presentó..."
-              rows={3}
-              style={{
-                width: '100%', padding: '11px 13px', borderRadius: '10px', boxSizing: 'border-box',
-                border: '1.5px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)',
-                color: '#e2e8f0', fontSize: '14px', fontFamily: 'Inter, sans-serif',
-                resize: 'none', outline: 'none'
-              }}
-            />
-            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-              <button
-                onClick={() => { setCancelReasonModal(null); setCancelReason(''); }}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.08)', background: 'transparent',
-                  color: '#64748b', fontSize: '14px', fontWeight: '600', cursor: 'pointer'
-                }}
-              >Volver</button>
-              <button
-                onClick={() => {
-                  executeCancelReservation(cancelReasonModal, cancelReason);
-                  setCancelReasonModal(null);
-                  setCancelReason('');
-                }}
-                style={{
-                  flex: 2, padding: '12px', borderRadius: '10px', border: 'none',
-                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                  color: 'white', fontSize: '14px', fontWeight: '800', cursor: 'pointer'
-                }}
-              ><MdClose size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />Confirmar Cancelación</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Componentes pequeños ──
-
-
-function Tag({ label, color, small }) {
-  return (
-    <span style={{
-      background: `${color}15`,
-      color,
-      fontSize: small ? '10px' : '11px',
-      fontWeight: '600',
-      padding: small ? '2px 6px' : '3px 8px',
-      borderRadius: '20px',
-      border: `1px solid ${color}30`
-    }}>{label}</span>
-  );
-}
-
-function ActionButton({ label, icon: Icon, color, textColor, onClick, fullWidth }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: `${color}18`,
-        color,
-        border: `1px solid ${color}35`,
-        borderRadius: '10px',
-        padding: '9px 14px',
-        fontSize: '12px',
-        fontWeight: '700',
-        cursor: 'pointer',
-        flex: fullWidth ? undefined : 1,
-        width: fullWidth ? '100%' : undefined,
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px'
-      }}
-      onMouseOver={e => { e.currentTarget.style.background = color; e.currentTarget.style.color = textColor || 'white'; }}
-      onMouseOut={e => { e.currentTarget.style.background = `${color}18`; e.currentTarget.style.color = color; }}
-    >
-      {Icon && <Icon size={15} />}
-      {label}
-    </button>
-  );
-}
-
-function EmptyState({ icon: Icon, text }) {
-  return (
-    <div style={{
-      textAlign: 'center', padding: '24px',
-      border: '1px solid rgba(255,255,255,0.05)',
-      borderRadius: '14px'
-    }}>
-      {Icon && <Icon size={28} color="#334155" style={{ marginBottom: '8px' }} />}
-      <p style={{ color: '#475569', fontSize: '13px', margin: 0 }}>{text}</p>
     </div>
   );
 }

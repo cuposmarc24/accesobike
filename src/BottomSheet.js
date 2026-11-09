@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { themeVars } from './lib/theme';
 
 const EXIT_MS = 420;
+let scrollLocks = 0;
 
 /**
  * Panel que sube desde abajo.
@@ -22,9 +23,13 @@ function BottomSheet({ onClose, theme, header, footer, children, dismissible = t
         sheetRef.current?.getBoundingClientRect();
         setOpen(true);
         sheetRef.current?.focus({ preventScroll: true });
-        const prevOverflow = document.body.style.overflow;
+        // Contador global: varios paneles pueden solaparse al abrir/cerrar
+        scrollLocks += 1;
         document.body.style.overflow = 'hidden';
-        return () => { document.body.style.overflow = prevOverflow; };
+        return () => {
+            scrollLocks = Math.max(0, scrollLocks - 1);
+            if (scrollLocks === 0) document.body.style.overflow = '';
+        };
     }, []);
 
     const requestClose = useCallback(() => {

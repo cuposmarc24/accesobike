@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import { MdOutlineDirectionsBike } from 'react-icons/md';
+import BottomSheet from './BottomSheet';
 
 function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundColor, reservations: externalReservations, activeTab: externalActiveTab, onTabChange, onNoteSaved }) {
   const [seats, setSeats] = useState([]);
@@ -175,43 +176,33 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
     }
   };
 
-  const bikeColor = (status, isSelectable) => {
-    if (!isSelectable) return '#1e2a2e';
-    if (status === 'ocupada') return '#ef4444';
-    if (status === 'reservada') return '#fbbf24';
-    return '#4ade80';
+  const STATUS = {
+    disponible: { color: '#4ade80', label: 'Libre' },
+    reservada: { color: '#fbbf24', label: 'Por confirmar' },
+    ocupada: { color: '#ef4444', label: 'Confirmada' }
   };
 
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: '40px', color: '#4a5568', fontSize: '13px' }}>
-      Cargando mapa...
-    </div>
-  );
+  const bikeColor = (status, isSelectable) => {
+    if (!isSelectable) return 'var(--ab-line-strong)';
+    return (STATUS[status] || STATUS.disponible).color;
+  };
+
+  if (loading) return <div className="ab-empty">Cargando mapa…</div>;
+
+  const session = localConfig?.sessions?.find(s => s.id === activeTab);
+  const rowEntries = Object.entries(seatsByRow).sort((a, b) => Number(a[0]) - Number(b[0]));
 
   return (
-    <div style={{ fontFamily: 'Inter, sans-serif' }}>
-
+    <div>
       {/* Tabs de sesión — solo si hay más de una Y el padre no los controla */}
       {sessions.length > 1 && externalActiveTab === undefined && (
-        <div style={{
-          display: 'flex', gap: '4px', marginBottom: '14px',
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: '10px', padding: '4px', overflowX: 'auto'
-        }}>
+        <div className="ab-seg">
           {sessions.map(s => (
             <button
               key={s.id}
+              type="button"
+              className={`ab-seg__btn${activeTab === s.id ? ' is-active' : ''}`}
               onClick={() => { setActiveTab(s.id); setSelectedSeat(null); }}
-              style={{
-                flex: 1, minWidth: '90px', padding: '8px 10px',
-                borderRadius: '8px', border: 'none', fontSize: '12px',
-                fontWeight: activeTab === s.id ? '700' : '500',
-                cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
-                background: activeTab === s.id ? `${primaryColor}22` : 'transparent',
-                color: activeTab === s.id ? primaryColor : '#4a5568',
-                outline: activeTab === s.id ? `1px solid ${primaryColor}40` : '1px solid transparent'
-              }}
             >
               {s.event_name || s.id}
             </button>
@@ -219,45 +210,22 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
         </div>
       )}
 
-      {/* Stats compactas */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
+      {/* Contadores */}
+      <div className="ab-tiles">
         {[
-          { label: 'Disp.', count: availableCount, color: '#4ade80' },
-          { label: 'Pend.', count: pendingCount, color: '#fbbf24' },
-          { label: 'Ocup.', count: occupiedCount, color: '#ef4444' }
+          { label: 'Libres', count: availableCount, color: STATUS.disponible.color },
+          { label: 'Por confirmar', count: pendingCount, color: STATUS.reservada.color },
+          { label: 'Confirmadas', count: occupiedCount, color: STATUS.ocupada.color }
         ].map(s => (
-          <div key={s.label} style={{
-            flex: 1, textAlign: 'center', padding: '8px 4px',
-            borderRadius: '8px',
-            border: `1px solid ${s.color}25`,
-            background: 'transparent'
-          }}>
-            <p style={{ color: s.color, fontSize: '18px', fontWeight: '800', margin: 0, lineHeight: 1 }}>{s.count}</p>
-            <p style={{ color: '#4a5568', fontSize: '10px', fontWeight: '600', margin: '2px 0 0 0' }}>{s.label}</p>
+          <div key={s.label} className="ab-tile" style={{ '--tone': s.color }}>
+            <span className="ab-tile__value">{s.count}</span>
+            <span className="ab-tile__label">{s.label}</span>
           </div>
         ))}
       </div>
 
-      {/* Leyenda */}
-      <div style={{ display: 'flex', gap: '14px', marginBottom: '12px', justifyContent: 'center' }}>
-        {[
-          { color: '#4ade80', label: 'Disponible' },
-          { color: '#fbbf24', label: 'Pendiente' },
-          { color: '#ef4444', label: 'Ocupado' }
-        ].map(l => (
-          <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <MdOutlineDirectionsBike size={14} color={l.color} />
-            <span style={{ color: '#4a5568', fontSize: '11px' }}>{l.label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Mapa — misma estructura que SeatMap */}
-      <div style={{
-        border: `1px solid rgba(255,255,255,0.06)`,
-        borderRadius: '14px', padding: '10px 6px', marginBottom: '12px',
-        overflowX: 'auto'
-      }}>
+      {/* Mapa — misma estructura que el público */}
+      <div className="ab-map">
         {(() => {
           const row1Seats = seatsByRow['1'] || [];
           const mid = Math.ceil(row1Seats.length / 2);
@@ -270,49 +238,49 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
             const color = bikeColor(status, seat.is_selectable);
             const isSelected = selectedSeat?.id === seat.id;
             return (
-              <div
+              <button
+                type="button"
                 key={seat.id}
-                onClick={() => seat.is_selectable && setSelectedSeat(isSelected ? null : { ...seat, status, reservation: res })}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', cursor: seat.is_selectable ? 'pointer' : 'default' }}
+                disabled={!seat.is_selectable}
+                aria-label={`Bici ${seat.seat_number}`}
+                onClick={() => setSelectedSeat(isSelected ? null : { ...seat, status, reservation: res })}
+                style={{
+                  appearance: 'none', border: 0, background: 'none', padding: 0,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+                  cursor: seat.is_selectable ? 'pointer' : 'default', font: 'inherit'
+                }}
               >
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '50%',
-                  border: isSelected ? `2px solid ${primaryColor}` : `1px solid ${color}50`,
+                <span style={{
+                  width: '30px', height: '30px', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isSelected ? `${primaryColor}20` : 'transparent',
-                  boxShadow: isSelected ? `0 0 10px ${primaryColor}50` : 'none',
-                  transition: 'all 0.15s'
+                  background: isSelected ? primaryColor : `color-mix(in srgb, ${color} 16%, transparent)`,
+                  boxShadow: isSelected ? `0 0 0 3px color-mix(in srgb, ${primaryColor} 30%, transparent)` : 'none',
+                  transition: 'background-color 0.15s, box-shadow 0.15s'
                 }}>
-                  <MdOutlineDirectionsBike size={14} color={isSelected ? primaryColor : color} />
-                </div>
+                  <MdOutlineDirectionsBike size={15} color={isSelected ? 'var(--ab-on-primary)' : color} />
+                </span>
                 {seat.is_selectable && (
-                  <span style={{ color: '#2d3748', fontSize: '9px', fontWeight: '600' }}>{seat.seat_number}</span>
+                  <span className="ab-num" style={{ color: 'var(--ab-faint)', fontSize: '10px', fontWeight: 600 }}>{seat.seat_number}</span>
                 )}
-              </div>
+              </button>
             );
           };
 
           return (
             <>
-              {/* Fila instructor — igual que SeatMap */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
-                {leftSeats.length > 0 && (
-                  <div style={{ display: 'flex', gap: '3px' }}>{leftSeats.map(renderBike)}</div>
-                )}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '14px' }}>
+                {leftSeats.length > 0 && <div style={{ display: 'flex', gap: '4px' }}>{leftSeats.map(renderBike)}</div>}
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ height: '1px', background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)`, opacity: 0.4, width: '60px', margin: '0 auto 6px' }} />
-                  <span style={{ color: '#334155', fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px' }}>▲ Tarima</span>
+                  <div style={{ height: '2px', borderRadius: 2, background: primaryColor, opacity: 0.5, width: '56px', margin: '0 auto 6px' }} />
+                  <span style={{ color: 'var(--ab-faint)', fontSize: '11px', fontWeight: 600 }}>Tarima</span>
                 </div>
-                {rightSeats.length > 0 && (
-                  <div style={{ display: 'flex', gap: '3px' }}>{rightSeats.map(renderBike)}</div>
-                )}
+                {rightSeats.length > 0 && <div style={{ display: 'flex', gap: '4px' }}>{rightSeats.map(renderBike)}</div>}
               </div>
 
-              {/* Resto de filas */}
-              {Object.entries(seatsByRow).sort((a, b) => Number(a[0]) - Number(b[0])).map(([rowNum, rowSeats]) => {
+              {rowEntries.map(([rowNum, rowSeats]) => {
                 if (rowNum === '1') return null;
                 return (
-                  <div key={rowNum} style={{ display: 'flex', justifyContent: 'center', gap: '3px', marginBottom: '4px', flexWrap: 'nowrap' }}>
+                  <div key={rowNum} style={{ display: 'flex', justifyContent: 'center', gap: '4px', marginBottom: '6px', flexWrap: 'nowrap' }}>
                     {rowSeats.map(renderBike)}
                   </div>
                 );
@@ -322,122 +290,101 @@ function AdminBikes({ eventId, config, primaryColor, secondaryColor, backgroundC
         })()}
       </div>
 
-      {/* Detalle del asiento seleccionado */}
-      {selectedSeat && (
-        <div style={{
-          borderRadius: '12px', padding: '13px', marginBottom: '12px',
-          border: `1px solid ${selectedSeat.status === 'ocupada' ? 'rgba(239,68,68,0.3)'
-            : selectedSeat.status === 'reservada' ? 'rgba(251,191,36,0.3)'
-              : `${primaryColor}30`}`
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h3 style={{ color: 'white', fontSize: '14px', fontWeight: '700', margin: 0 }}>
-              Bici #{selectedSeat.seat_number}
-            </h3>
-            <span style={{
-              fontSize: '10px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px',
-              border: `1px solid ${selectedSeat.status === 'ocupada' ? 'rgba(239,68,68,0.4)'
-                : selectedSeat.status === 'reservada' ? 'rgba(251,191,36,0.4)'
-                  : 'rgba(74,222,128,0.4)'}`,
-              color: selectedSeat.status === 'ocupada' ? '#ef4444'
-                : selectedSeat.status === 'reservada' ? '#fbbf24' : '#4ade80',
-              textTransform: 'uppercase'
-            }}>
-              {selectedSeat.status === 'disponible' ? 'Disponible'
-                : selectedSeat.status === 'reservada' ? 'Pendiente' : 'Ocupado'}
-            </span>
-          </div>
-          {selectedSeat.reservation ? (
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              <MiniChip label="Nombre" value={selectedSeat.reservation.customer_name} />
-              <MiniChip label="Teléfono" value={selectedSeat.reservation.customer_phone} />
-            </div>
-          ) : (
-            <p style={{ color: '#4a5568', fontSize: '12px', margin: 0 }}>Asiento disponible</p>
-          )}
-        </div>
-      )}
-
-      {/* Notas por fila */}
-      {(() => {
-        const session = localConfig?.sessions?.find(s => s.id === activeTab);
-        const rowEntries = Object.entries(seatsByRow).sort((a, b) => Number(a[0]) - Number(b[0]));
-        if (rowEntries.length === 0) return null;
+      {/* Detalle de la bici seleccionada */}
+      {selectedSeat && (() => {
+        const st = STATUS[selectedSeat.status] || STATUS.disponible;
         return (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <h3 style={{ color: 'white', fontSize: '13px', fontWeight: '700', margin: 0 }}>Notas por Fila</h3>
-              <span style={{ color: '#475569', fontSize: '11px' }}>Visibles al seleccionar bici</span>
+          <div className="ab-card" style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: selectedSeat.reservation ? 10 : 0 }}>
+              <span className="ab-row__badge ab-display" style={{ '--tone': st.color }}>{String(selectedSeat.seat_number).padStart(2, '0')}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span className="ab-row__title">Bici {selectedSeat.seat_number}</span>
+                <span className="ab-pill" style={{ '--tone': st.color, marginTop: 4 }}>{st.label}</span>
+              </div>
+              <button type="button" className="ab-icon-btn" style={{ width: 36, height: 36 }} onClick={() => setSelectedSeat(null)} aria-label="Cerrar detalle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
             </div>
-            {rowEntries.map(([rowNum, _], idx) => {
-              const currentNote = (session?.rowNotes || [])[idx] || '';
-              const isEditing = editingRowNote?.rowIndex === idx;
-              return (
-                <div key={rowNum} style={{ marginBottom: '8px', borderRadius: '10px', border: `1px solid ${currentNote ? `${primaryColor}25` : 'rgba(255,255,255,0.06)'}`, padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isEditing ? '8px' : currentNote ? '6px' : '0' }}>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: idx === 0 ? primaryColor : '#94a3b8' }}>
-                      {idx === 0 ? 'Fila 1 ★ (Instructor)' : `Fila ${idx + 1}`}
-                    </span>
-                    {!isEditing && (
-                      <button
-                        onClick={() => setEditingRowNote({ rowIndex: idx, note: currentNote })}
-                        style={{
-                          background: `${primaryColor}18`, color: primaryColor,
-                          border: `1px solid ${primaryColor}30`, borderRadius: '6px',
-                          padding: '3px 9px', fontSize: '11px', fontWeight: '700', cursor: 'pointer'
-                        }}
-                      >{currentNote ? 'Editar' : '+ Nota'}</button>
-                    )}
-                  </div>
-
-                  {isEditing ? (
-                    <div>
-                      <textarea
-                        autoFocus
-                        value={editingRowNote.note}
-                        onChange={e => setEditingRowNote({ ...editingRowNote, note: e.target.value })}
-                        placeholder="Ej: Incluye termo, llavero y ropa deportiva"
-                        rows={2}
-                        style={{
-                          width: '100%', padding: '8px 10px', borderRadius: '8px', boxSizing: 'border-box',
-                          border: `1.5px solid ${primaryColor}40`, background: `${primaryColor}08`,
-                          color: '#e2e8f0', fontSize: '13px', fontFamily: 'Inter, sans-serif',
-                          resize: 'none', outline: 'none'
-                        }}
-                      />
-                      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                        <button
-                          onClick={() => setEditingRowNote(null)}
-                          style={{ flex: 1, padding: '7px', borderRadius: '7px', border: '1px solid rgba(255,255,255,0.08)', background: 'transparent', color: '#64748b', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
-                        >Cancelar</button>
-                        <button
-                          onClick={() => handleSaveRowNote(editingRowNote.rowIndex, editingRowNote.note)}
-                          disabled={savingNote}
-                          style={{ flex: 2, padding: '7px', borderRadius: '7px', border: 'none', background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: backgroundColor, fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
-                        >{savingNote ? 'Guardando...' : 'Guardar'}</button>
-                      </div>
-                    </div>
-                  ) : currentNote ? (
-                    <p style={{ color: '#64748b', fontSize: '12px', margin: 0, lineHeight: 1.5, fontStyle: 'italic' }}>"{currentNote}"</p>
-                  ) : null}
-                </div>
-              );
-            })}
+            {selectedSeat.reservation && (
+              <div className="ab-kv">
+                <div className="ab-kv__row"><span className="ab-kv__k">Nombre</span><span className="ab-kv__v">{selectedSeat.reservation.customer_name}</span></div>
+                <div className="ab-kv__row"><span className="ab-kv__k">WhatsApp</span><span className="ab-kv__v">{selectedSeat.reservation.customer_phone}</span></div>
+              </div>
+            )}
           </div>
         );
       })()}
-    </div>
-  );
-}
 
-function MiniChip({ label, value }) {
-  return (
-    <div style={{
-      border: '1px solid rgba(255,255,255,0.07)', borderRadius: '8px',
-      padding: '6px 10px', flex: 1, minWidth: '120px'
-    }}>
-      <p style={{ color: '#334155', fontSize: '10px', fontWeight: '600', margin: '0 0 2px 0', textTransform: 'uppercase' }}>{label}</p>
-      <p style={{ color: 'white', fontSize: '12px', fontWeight: '600', margin: 0, wordBreak: 'break-word' }}>{value}</p>
+      {/* Notas por fila */}
+      {rowEntries.length > 0 && (
+        <section className="ab-section" style={{ marginTop: 22 }}>
+          <div className="ab-sec-head">
+            <div>
+              <h2>Notas por fila</h2>
+              <p>El cliente las ve al elegir una bici de esa fila</p>
+            </div>
+          </div>
+          <div className="ab-list">
+            {rowEntries.map(([rowNum], idx) => {
+              const currentNote = (session?.rowNotes || [])[idx] || '';
+              return (
+                <button
+                  type="button"
+                  key={rowNum}
+                  className="ab-row"
+                  onClick={() => setEditingRowNote({ rowIndex: idx, note: currentNote })}
+                >
+                  <span className="ab-row__badge ab-display" style={{ width: 40, height: 40, fontSize: 19 }}>{idx + 1}</span>
+                  <span className="ab-row__main">
+                    <span className="ab-row__title">{idx === 0 ? 'Fila 1 (junto a la tarima)' : `Fila ${idx + 1}`}</span>
+                    <span className="ab-row__sub" style={{ whiteSpace: 'normal' }}>{currentNote || 'Sin nota — toca para agregar'}</span>
+                  </span>
+                  <svg className="ab-row__chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Editor de nota (sube desde abajo) */}
+      {editingRowNote && (
+        <BottomSheet
+          theme={{ primaryColor, backgroundColor }}
+          ariaLabel="Editar nota de fila"
+          onClose={() => setEditingRowNote(null)}
+          header={
+            <div>
+              <h2 className="ab-sheet-title">Nota de la fila {editingRowNote.rowIndex + 1}</h2>
+              <p className="ab-sheet-sub">Se muestra al cliente como “Incluido en tu reserva”</p>
+            </div>
+          }
+          footer={(close) => (
+            <>
+              <button type="button" className="ab-btn ab-btn--ghost" style={{ flex: 1 }} onClick={close}>Cancelar</button>
+              <button
+                type="button"
+                className="ab-btn ab-btn--primary"
+                style={{ flex: 2 }}
+                disabled={savingNote}
+                onClick={() => handleSaveRowNote(editingRowNote.rowIndex, editingRowNote.note)}
+              >
+                {savingNote ? 'Guardando…' : 'Guardar nota'}
+              </button>
+            </>
+          )}
+        >
+          <textarea
+            className="ab-textarea"
+            aria-label="Nota de la fila"
+            value={editingRowNote.note}
+            onChange={e => setEditingRowNote({ ...editingRowNote, note: e.target.value })}
+            placeholder="Ej: Incluye termo, llavero y ropa deportiva"
+            rows={4}
+          />
+          <p className="ab-help">Déjala vacía y guarda para quitar la nota.</p>
+        </BottomSheet>
+      )}
     </div>
   );
 }
